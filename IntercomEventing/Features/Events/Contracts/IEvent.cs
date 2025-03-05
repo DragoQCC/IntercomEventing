@@ -4,14 +4,13 @@ public interface IEvent;
 
 public interface IEvent<TEvent> : IEvent where TEvent : IEvent
 {
-    public EventMetadata Metadata { get; init; }
+    public EventMetadata Metadata { get; protected set; }
     public HashSet<Subscription<TEvent>> Subscribers { get; init; }
 
 
     public async Task RaiseEvent<TCaller>(TCaller? eventCaller = null) where TCaller : class?
     {
-        Metadata.LastEventTime = DateTime.Now;
-        Metadata.EventCaller = eventCaller;
+        Metadata = Metadata with {EventCaller = eventCaller, LastEventTime = DateTime.Now};
         await NotifySubscribers();
     }
 
@@ -107,8 +106,8 @@ where TEventArgs : IEventArgs<TEvent>
 
     public async Task RaiseEvent(TEventArgs args, object? eventCaller = null)
     {
-        Metadata.LastEventTime = DateTime.Now;
-        Metadata.EventCaller = eventCaller;
+        //Metadata.SetCaller(eventCaller);
+        Metadata = Metadata with {EventCaller = eventCaller, LastEventTime = DateTime.Now};
         EventArgs = args;
         await NotifySubscribers();
     }

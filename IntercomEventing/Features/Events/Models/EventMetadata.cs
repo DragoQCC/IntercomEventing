@@ -1,6 +1,6 @@
 ﻿namespace IntercomEventing.Features.Events;
 
-public record EventMetadata
+public record struct EventMetadata
 {
     public Guid Id { get; init; } = Guid.CreateVersion7(DateTime.UtcNow);
     public DateTime LastEventTime { get; set; } = DateTime.UtcNow;
@@ -13,4 +13,8 @@ public record EventMetadata
     {
         MaxDegreeOfParallelism =  EventingConfiguration.EventingOptionsInternal.MaxThreadsPerEvent
     };
+
+    public EventMetadata()
+    {
+    }
 }

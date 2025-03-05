@@ -57,13 +57,15 @@ public static class EventingExample
     {
         public static async ValueTask HandleIntercomEvent(CounterThresholdReachedEvent<CounterThresholdReachedEventArgs> @event)
         {
-            await Task.Delay(100);
+            Console.WriteLine($"Intercom event called at {@event.Metadata.LastEventTime} by {@event.Metadata.EventCaller}");
+            await Task.Delay(1000);
         }
 
         //Currently this is sleeping the calling thread, not exactly a fair comparison but events also are not asnyc
         public static async ValueTask HandleClassicEvent(object? sender, CounterThresholdReachedEventArgs args)
         {
-            await Task.Delay(100);
+            Console.WriteLine($"Classic event called at {args.EventTime} by {sender}");
+            await Task.Delay(1000);
         }
     }
 }

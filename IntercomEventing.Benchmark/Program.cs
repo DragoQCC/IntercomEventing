@@ -22,7 +22,7 @@ class Program
         EventingExample.ClassicCounterClass classicCounterClass = new EventingExample.ClassicCounterClass();
         classicCounterClass.ThresholdReached += async (o,e) => await EventingExample.ExampleEventHandler.HandleClassicEvent(o,e);
 
-        for(int i = 0; i < 1000; i++)
+        for(int i = 0; i < 15; i++)
         {
             Console.WriteLine($"Incrementing counter to {i}");
             await intercomCounterClass.Increment();

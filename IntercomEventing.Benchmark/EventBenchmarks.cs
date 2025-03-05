@@ -7,18 +7,16 @@ namespace IntercomEventing.Benchmark;
 public class EventBenchmarks
 {
 
-    static int _iterations = 100;
+    static int _iterations = 15;
 
     [Benchmark]
-    public async Task IntercomEvent_10Subs_100Calls()
+    public async Task IntercomEvent()
     {
         //create our eventing class
         EventingExample.IntercomCounterClass intercomCounterClass = new EventingExample.IntercomCounterClass();
-        //subscribe to the event 10 times
-        for(int i = 0; i < 10; i++)
-        {
-            await intercomCounterClass.ThresholdReachedEvent.Subscribe(EventingExample.ExampleEventHandler.HandleIntercomEvent);
-        }
+
+        await intercomCounterClass.ThresholdReachedEvent.Subscribe(EventingExample.ExampleEventHandler.HandleIntercomEvent);
+
         //call the event
         for(int i = 0; i < _iterations; i++)
         {
@@ -27,15 +25,14 @@ public class EventBenchmarks
     }
 
     [Benchmark]
-    public async Task ClassicEvent_10Subs_100Calls()
+    public async Task ClassicEvent()
     {
         //create our eventing class
         EventingExample.ClassicCounterClass classicCounterClass = new EventingExample.ClassicCounterClass();
-        //subscribe to the event 10 times
-        for(int i = 0; i < 10; i++)
-        {
-            classicCounterClass.ThresholdReached += async (o,e) => await EventingExample.ExampleEventHandler.HandleClassicEvent(o,e);
-        }
+
+        //subscribe to the event
+        classicCounterClass.ThresholdReached += async (o,e) => await EventingExample.ExampleEventHandler.HandleClassicEvent(o,e);
+
         //call the event
         for(int i = 0; i < _iterations; i++)
         {
