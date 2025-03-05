@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using IntercomEventing.Features.Events;
 
 namespace IntercomEventing.Benchmark;
@@ -7,6 +8,7 @@ public static class EventingExample
     public class IntercomCounterClass
     {
         public CounterThresholdReachedEvent<CounterThresholdReachedEventArgs> ThresholdReachedEvent { get; init; } = new();
+        public CounterThresholdReachedEvent ThresholdReachedEventNoArgs { get; init; } = new();
 
         public int Count { get; set; }
         public int Threshold { get; set; } = 10;
@@ -19,9 +21,16 @@ public static class EventingExample
             {
                 return;
             }
+            Stopwatch stopwatch = Stopwatch.StartNew();
             LastEventTime = DateTime.Now;
-            CounterThresholdReachedEventArgs args = new(Count, Threshold, LastEventTime);
+            /*CounterThresholdReachedEventArgs args = new(Count, Threshold, LastEventTime);
             await ThresholdReachedEvent.RaiseEvent(args,this);
+            var timeToInvokeIntercom = stopwatch.Elapsed;
+            Console.WriteLine($"Time to invoke intercom event with args: {timeToInvokeIntercom.Milliseconds}ms");
+            stopwatch.Restart();*/
+            await ThresholdReachedEventNoArgs.RaiseEvent();
+            var timeToInvokeIntercomNoArgs = stopwatch.Elapsed;
+            Console.WriteLine($"Time to invoke intercom event without args: {timeToInvokeIntercomNoArgs.Milliseconds}ms");
         }
     }
 
@@ -40,32 +49,41 @@ public static class EventingExample
             {
                 return;
             }
+            Stopwatch stopwatch = Stopwatch.StartNew();
             LastEventTime = DateTime.Now;
             ThresholdReached?.Invoke(this, new(Count, Threshold, LastEventTime));
+            var timeToInvokeClassic = stopwatch.Elapsed;
+            stopwatch.Restart();
+            Console.WriteLine($"Time to invoke classic event: {timeToInvokeClassic.Milliseconds}ms");
         }
     }
 
 
     public record CounterThresholdReachedEvent<T> : GenericEvent<CounterThresholdReachedEvent<T>, T> where T : IEventArgs<CounterThresholdReachedEvent<T>>;
     public record struct CounterThresholdReachedEventArgs(int Count, int Threshold, DateTime EventTime) : IEventArgs<CounterThresholdReachedEvent<CounterThresholdReachedEventArgs>>;
-
-    //example of making a different set of arguments for the same event
-    public record struct CounterThresholdReachedEventArgs2(int Count) : IEventArgs<CounterThresholdReachedEvent<CounterThresholdReachedEventArgs2>>;
+    public record CounterThresholdReachedEvent : GenericEvent<CounterThresholdReachedEvent>;
 
 
     public class ExampleEventHandler
     {
-        public static async ValueTask HandleIntercomEvent(CounterThresholdReachedEvent<CounterThresholdReachedEventArgs> @event)
+        public static async ValueTask HandleIntercomEventAsync(CounterThresholdReachedEvent<CounterThresholdReachedEventArgs> @event)
         {
-            Console.WriteLine($"Intercom event called at {@event.Metadata.LastEventTime} by {@event.Metadata.EventCaller}");
-            await Task.Delay(1000);
+            await Task.Delay(100);
         }
 
-        //Currently this is sleeping the calling thread, not exactly a fair comparison but events also are not asnyc
-        public static async ValueTask HandleClassicEvent(object? sender, CounterThresholdReachedEventArgs args)
+        public static async ValueTask HandleIntercomEventNoArgs(CounterThresholdReachedEvent @event)
         {
-            Console.WriteLine($"Classic event called at {args.EventTime} by {sender}");
-            await Task.Delay(1000);
+            await Task.Delay(100);
+        }
+        
+        public static async ValueTask HandleClassicEventAsync(object? sender, CounterThresholdReachedEventArgs args)
+        {
+            await Task.Delay(100);
+        }
+        
+        public static void HandleClassicEvent(object? sender, CounterThresholdReachedEventArgs args)
+        {
+            Task.Delay(100).Wait();
         }
     }
 }

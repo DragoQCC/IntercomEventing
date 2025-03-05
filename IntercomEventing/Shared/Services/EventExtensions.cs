@@ -43,12 +43,22 @@ public static class EventExtensions
         => await @event.DeleteEvent();
 
     public static async Task RaiseEvent<TEvent,TCaller>(this TEvent @event, TCaller? eventCaller = null)
-    where TEvent : IEvent<TEvent>
+    where TEvent : IEvent<TEvent> 
     where TCaller : class?
+        => await @event.RaiseEvent(eventCaller);
+    
+    public static async Task RaiseEvent<TEvent>(this TEvent @event, object? eventCaller = null)
+    where TEvent : IEvent<TEvent> 
         => await @event.RaiseEvent(eventCaller);
 
     public static async Task RaiseEvent<TEvent,TEventArgs>(this TEvent @event, TEventArgs args, object? eventCaller = null)
     where TEvent : IEvent<TEvent,TEventArgs>
+    where TEventArgs : IEventArgs<TEvent>
+        => await @event.RaiseEvent(args, eventCaller);
+    
+    public static async Task RaiseEvent<TEvent,TEventArgs,TCaller>(this TEvent @event, TEventArgs args, TCaller? eventCaller = null)
+    where TEvent : IEvent<TEvent,TEventArgs>
+    where TCaller : class?
     where TEventArgs : IEventArgs<TEvent>
         => await @event.RaiseEvent(args, eventCaller);
 }

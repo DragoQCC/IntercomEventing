@@ -10,13 +10,17 @@ public interface IEvent<TEvent> : IEvent where TEvent : IEvent
 
     public async Task RaiseEvent<TCaller>(TCaller? eventCaller = null) where TCaller : class?
     {
+        if(Subscribers.Count == 0)
+        {
+            return;
+        }
         Metadata = Metadata with {EventCaller = eventCaller, LastEventTime = DateTime.Now};
         await NotifySubscribers();
     }
 
     public async Task<Subscription<TEvent>> Subscribe(SubscriptionRequest<TEvent> subscriptionRequest)
     {
-        Subscription<TEvent> subscription = new(subscriptionRequest);
+        Subscription<TEvent> subscription = new(this, subscriptionRequest);
         await AddSubscriber(subscription);
         return subscription;
     }
@@ -63,15 +67,30 @@ public interface IEvent<TEvent> : IEvent where TEvent : IEvent
     //this then blocks the execution of the rest of the subscribers
     public async Task NotifySubscribers()
     {
-        if(EventingConfiguration.EventingOptionsInternal.SyncType == EventingSyncType.Sync)
+        // Fast path for single subscriber
+        if (Subscribers.Count == 1)
         {
-            foreach (Subscription<TEvent> subscription in Subscribers)
+            var subscription = Subscribers.First();
+            try
+            {
+                await subscription.HandleEventExecute((TEvent)this).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                subscription.TryHandleException(ex);
+            }
+            return;
+        }
+
+        if (EventingConfiguration.IsSync)
+        {
+            foreach (var subscription in Subscribers)
             {
                 try
                 {
-                    await subscription.HandleEventExecute((TEvent)this);
+                    await subscription.HandleEventExecute((TEvent)this).ConfigureAwait(false);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     subscription.TryHandleException(ex);
                 }
@@ -79,17 +98,13 @@ public interface IEvent<TEvent> : IEvent where TEvent : IEvent
         }
         else
         {
-            await Parallel.ForEachAsync(Subscribers, Metadata.ParallelOptions, async (subscription, parallelCancelToken) =>
+            var tasks = new ValueTask[Subscribers.Count];
+            var i = 0;
+            foreach (var subscription in Subscribers)
             {
-                try
-                {
-                    await subscription.HandleEventExecute((TEvent)this);
-                }
-                catch(Exception ex)
-                {
-                    subscription.TryHandleException(ex);
-                }
-            });
+                tasks[i++] = subscription.HandleEventExecute((TEvent)this);
+            }
+            await Task.WhenAll(tasks.Select(t => t.AsTask())).ConfigureAwait(false);
         }
     }
 
@@ -106,7 +121,10 @@ where TEventArgs : IEventArgs<TEvent>
 
     public async Task RaiseEvent(TEventArgs args, object? eventCaller = null)
     {
-        //Metadata.SetCaller(eventCaller);
+        if(Subscribers.Count == 0)
+        {
+            return;
+        }
         Metadata = Metadata with {EventCaller = eventCaller, LastEventTime = DateTime.Now};
         EventArgs = args;
         await NotifySubscribers();

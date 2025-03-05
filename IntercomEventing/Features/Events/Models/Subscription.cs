@@ -10,12 +10,15 @@ where TEvent : IEvent
     private Action<Exception>? ExceptionHandler { get; init; }
     public CancellationToken SubCancelToken { get; init; }
     internal CancellationTokenSource SubCancelTokenSource { get; init; }
-
+    
+    // Add reference to the event
+    private readonly IEvent<TEvent> _subscribedEvent;
     private bool _isDisposed;
 
-
-    public Subscription(Func<TEvent, ValueTask> onEventExecute, Func<TEvent,Task>? onSubscribe = null, Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
+    public Subscription(IEvent<TEvent> subscribedEvent, Func<TEvent, ValueTask> onEventExecute, Func<TEvent,Task>? onSubscribe = null, 
+        Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
     {
+        _subscribedEvent = subscribedEvent;
         OnEventExecute = onEventExecute;
         OnUnsubscribe = onUnsubscribe;
         OnSubscribe = onSubscribe;
@@ -24,8 +27,9 @@ where TEvent : IEvent
         SubCancelToken = SubCancelTokenSource.Token;
     }
 
-    public Subscription(SubscriptionRequest<TEvent> subscriptionRequest)
+    public Subscription(IEvent<TEvent> subscribedEvent, SubscriptionRequest<TEvent> subscriptionRequest)
     {
+        _subscribedEvent = subscribedEvent;
         OnEventExecute = subscriptionRequest.OnEventExecute;
         OnUnsubscribe = subscriptionRequest.OnUnsubscribe;
         OnSubscribe = subscriptionRequest.OnSubscribe;
@@ -53,19 +57,16 @@ where TEvent : IEvent
         {
             await OnUnsubscribe.Invoke();
         }
-        else
-        {
-            await Task.CompletedTask;
-        }
+        await _subscribedEvent.Unsubscribe(this);
     }
 
-    public async ValueTask HandleEventExecute(TEvent @event)
+    public ValueTask HandleEventExecute(TEvent @event)
     {
         if(SubCancelToken.IsCancellationRequested)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
-        await OnEventExecute(@event);
+        return OnEventExecute(@event);
     }
 
     internal void TryHandleException(Exception ex) => ExceptionHandler?.Invoke(ex);
@@ -73,12 +74,13 @@ where TEvent : IEvent
     /// <inheritdoc />
     public void Dispose()
     {
-        Console.WriteLine("Disposing subscription");
         if (_isDisposed)
         {
             return;
         }
         _isDisposed = true;
+        
+        // Unsubscribe from the event
         HandleUnsubscribe().Wait(SubCancelToken);
         SubCancelTokenSource.Cancel();
         SubCancelTokenSource.Dispose();
@@ -87,12 +89,13 @@ where TEvent : IEvent
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        Console.WriteLine("Disposing subscription async");
         if(_isDisposed)
         {
             return;
         }
         _isDisposed = true;
+
+        // Unsubscribe from the event
         await HandleUnsubscribe();
         await SubCancelTokenSource.CancelAsync();
         SubCancelTokenSource.Dispose();

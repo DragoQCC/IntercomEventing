@@ -15,7 +15,7 @@ public class EventBenchmarks
         //create our eventing class
         EventingExample.IntercomCounterClass intercomCounterClass = new EventingExample.IntercomCounterClass();
 
-        await intercomCounterClass.ThresholdReachedEvent.Subscribe(EventingExample.ExampleEventHandler.HandleIntercomEvent);
+        await intercomCounterClass.ThresholdReachedEventNoArgs.Subscribe(EventingExample.ExampleEventHandler.HandleIntercomEventNoArgs);
 
         //call the event
         for(int i = 0; i < _iterations; i++)
@@ -31,7 +31,8 @@ public class EventBenchmarks
         EventingExample.ClassicCounterClass classicCounterClass = new EventingExample.ClassicCounterClass();
 
         //subscribe to the event
-        classicCounterClass.ThresholdReached += async (o,e) => await EventingExample.ExampleEventHandler.HandleClassicEvent(o,e);
+        //classicCounterClass.ThresholdReached += async (o,e) => await EventingExample.ExampleEventHandler.HandleClassicEvent(o,e);
+        classicCounterClass.ThresholdReached += EventingExample.ExampleEventHandler.HandleClassicEvent;
 
         //call the event
         for(int i = 0; i < _iterations; i++)
