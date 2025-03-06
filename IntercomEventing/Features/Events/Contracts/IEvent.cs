@@ -1,8 +1,8 @@
-﻿namespace IntercomEventing.Features.Events;
+﻿/*namespace IntercomEventing.Features.Events;
 
 public interface IEvent;
 
-public interface IEvent<TEvent> : IEvent where TEvent : IEvent
+public interface IEvent<TEvent> : IEvent where TEvent : IEvent<TEvent>
 {
     public EventMetadata Metadata { get; protected set; }
     public HashSet<Subscription<TEvent>> Subscribers { get; init; }
@@ -18,9 +18,9 @@ public interface IEvent<TEvent> : IEvent where TEvent : IEvent
         await NotifySubscribers();
     }
 
-    public async Task<Subscription<TEvent>> Subscribe(SubscriptionRequest<TEvent> subscriptionRequest)
+    public async ValueTask<Subscription<TEvent>> Subscribe(SubscriptionRequest<TEvent> subscriptionRequest)
     {
-        Subscription<TEvent> subscription = new(this, subscriptionRequest);
+        Subscription<TEvent> subscription = new((TEvent)this, subscriptionRequest);
         await AddSubscriber(subscription);
         return subscription;
     }
@@ -44,14 +44,14 @@ public interface IEvent<TEvent> : IEvent where TEvent : IEvent
         Subscribers.Clear();
     }
 
-    public async Task AddSubscriber(Subscription<TEvent> subscription)
+    public async ValueTask AddSubscriber(Subscription<TEvent> subscription)
     {
         if(!Subscribers.Add(subscription))
         {
             return;
         }
         //TODO: Eval performance with long running or error prone event handlers
-        await subscription.HandleSubscribe((TEvent)this);
+        await subscription.HandleSubscribe();
     }
 
     public async Task RemoveSubscriber(Subscription<TEvent> subscription)
@@ -113,7 +113,7 @@ public interface IEvent<TEvent> : IEvent where TEvent : IEvent
 }
 
 public interface IEvent<TEvent,TEventArgs> : IEvent<TEvent>
-where TEvent : IEvent
+where TEvent : IEvent<TEvent>
 where TEventArgs : IEventArgs<TEvent>
 {
     public TEventArgs EventArgs { get; set; }
@@ -132,4 +132,4 @@ where TEventArgs : IEventArgs<TEvent>
 
     public static Subscription<TEvent> operator +(IEvent<TEvent,TEventArgs> @event, SubscriptionRequest<TEvent> subscriptionRequest)
         => @event.Subscribe(subscriptionRequest).Result;
-}
+}*/

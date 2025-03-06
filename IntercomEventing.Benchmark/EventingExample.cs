@@ -11,8 +11,9 @@ public static class EventingExample
         public CounterThresholdReachedEvent ThresholdReachedEventNoArgs { get; init; } = new();
 
         public int Count { get; set; }
-        public int Threshold { get; set; } = 10;
+        public int Threshold { get; set; } = 5;
         public DateTime LastEventTime { get; set; }
+
 
         public async Task Increment()
         {
@@ -21,16 +22,9 @@ public static class EventingExample
             {
                 return;
             }
-            Stopwatch stopwatch = Stopwatch.StartNew();
             LastEventTime = DateTime.Now;
-            /*CounterThresholdReachedEventArgs args = new(Count, Threshold, LastEventTime);
-            await ThresholdReachedEvent.RaiseEvent(args,this);
-            var timeToInvokeIntercom = stopwatch.Elapsed;
-            Console.WriteLine($"Time to invoke intercom event with args: {timeToInvokeIntercom.Milliseconds}ms");
-            stopwatch.Restart();*/
-            await ThresholdReachedEventNoArgs.RaiseEvent();
-            var timeToInvokeIntercomNoArgs = stopwatch.Elapsed;
-            Console.WriteLine($"Time to invoke intercom event without args: {timeToInvokeIntercomNoArgs.Milliseconds}ms");
+            CounterThresholdReachedEventArgs args = new(Count, Threshold, LastEventTime);
+            ThresholdReachedEvent.RaiseEvent(args);
         }
     }
 
@@ -39,9 +33,21 @@ public static class EventingExample
         public event EventHandler<CounterThresholdReachedEventArgs>? ThresholdReached;
 
         public int Count { get; set; }
-        public int Threshold { get; set; } = 10;
+        public int Threshold { get; set; } = 5;
         public DateTime LastEventTime { get; set; }
-
+        
+        
+        public async Task IncrementAsync()
+        {
+            Count++;
+            if(Count < Threshold)
+            {
+                return;
+            }
+            LastEventTime = DateTime.Now;
+            ThresholdReached?.Invoke(this, new(Count, Threshold, LastEventTime));
+        }
+        
         public void Increment()
         {
             Count++;
@@ -49,12 +55,8 @@ public static class EventingExample
             {
                 return;
             }
-            Stopwatch stopwatch = Stopwatch.StartNew();
             LastEventTime = DateTime.Now;
             ThresholdReached?.Invoke(this, new(Count, Threshold, LastEventTime));
-            var timeToInvokeClassic = stopwatch.Elapsed;
-            stopwatch.Restart();
-            Console.WriteLine($"Time to invoke classic event: {timeToInvokeClassic.Milliseconds}ms");
         }
     }
 
@@ -68,22 +70,63 @@ public static class EventingExample
     {
         public static async ValueTask HandleIntercomEventAsync(CounterThresholdReachedEvent<CounterThresholdReachedEventArgs> @event)
         {
-            await Task.Delay(100);
-        }
-
-        public static async ValueTask HandleIntercomEventNoArgs(CounterThresholdReachedEvent @event)
-        {
+            Console.WriteLine($"Intercom event called async with args: {@event.EventArgs}");
             await Task.Delay(100);
         }
         
         public static async ValueTask HandleClassicEventAsync(object? sender, CounterThresholdReachedEventArgs args)
         {
+            Console.WriteLine($"Classic event called async with args: {args}");
             await Task.Delay(100);
         }
         
         public static void HandleClassicEvent(object? sender, CounterThresholdReachedEventArgs args)
         {
             Task.Delay(100).Wait();
+        }
+        
+        public static async ValueTask FaultyIntercomEventHandler(CounterThresholdReachedEvent<CounterThresholdReachedEventArgs> @event)
+        {
+           //throw an exception at random
+           if (Random.Shared.Next(0, 100) > 50)
+           {
+               throw new Exception("Faulty intercom event handler");
+           }
+           await Task.Delay(100);
+        }
+        
+        public static async ValueTask FaultyClassicEventHandler(object? sender, CounterThresholdReachedEventArgs args)
+        {
+            //throw an exception at random
+            if (Random.Shared.Next(0, 100) > 50)
+            {
+                throw new Exception("Faulty classic event handler");
+            }
+            await Task.Delay(100);
+        }
+        
+       
+        //Mimic a long-running event handler
+        public static async ValueTask HangingIntercomEventHandler(CounterThresholdReachedEvent<CounterThresholdReachedEventArgs> @event)
+        {
+            Console.WriteLine($"Intercom async event called at {DateTime.Now}");
+            await Task.Delay(5000);
+            Console.WriteLine($"Intercom async event finished at {DateTime.Now}");
+        }
+        
+        //Mimic a long-running event handler
+        public static async ValueTask HangingClassicEventHandlerAsync(object? sender, CounterThresholdReachedEventArgs args)
+        {
+            Console.WriteLine($"Classic async event called at {DateTime.Now}");
+            await Task.Delay(5000);
+            Console.WriteLine($"Classic async event finished at {DateTime.Now}");
+        }
+        
+        public static void HangingClassicEventHandler(object? sender, CounterThresholdReachedEventArgs args)
+        { 
+            Console.WriteLine($"Classic event called at {DateTime.Now}");
+            Thread.Sleep(5000);
+            Console.WriteLine($"Classic event finished at {DateTime.Now}");
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace IntercomEventing.Features.Events;
 
-public record struct SubscriptionRequest<TEvent> where TEvent : IEvent
+public record struct SubscriptionRequest<TEvent> where TEvent : GenericEvent<TEvent>
 {
     public Func<TEvent, ValueTask> OnEventExecute { get; init; }
     public Func<Task>? OnUnsubscribe { get; init; }

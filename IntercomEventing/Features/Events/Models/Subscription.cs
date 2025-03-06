@@ -2,7 +2,7 @@
 
 
 public sealed record Subscription<TEvent> : ISubscription
-where TEvent : IEvent
+where TEvent : GenericEvent<TEvent>
 {
     private Func<TEvent, ValueTask> OnEventExecute { get; set; }
     private Func<Task>? OnUnsubscribe { get; init; }
@@ -12,10 +12,10 @@ where TEvent : IEvent
     internal CancellationTokenSource SubCancelTokenSource { get; init; }
     
     // Add reference to the event
-    private readonly IEvent<TEvent> _subscribedEvent;
+    private readonly TEvent _subscribedEvent;
     private bool _isDisposed;
 
-    public Subscription(IEvent<TEvent> subscribedEvent, Func<TEvent, ValueTask> onEventExecute, Func<TEvent,Task>? onSubscribe = null, 
+    public Subscription(TEvent subscribedEvent, Func<TEvent, ValueTask> onEventExecute, Func<TEvent,Task>? onSubscribe = null, 
         Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
     {
         _subscribedEvent = subscribedEvent;
@@ -27,7 +27,7 @@ where TEvent : IEvent
         SubCancelToken = SubCancelTokenSource.Token;
     }
 
-    public Subscription(IEvent<TEvent> subscribedEvent, SubscriptionRequest<TEvent> subscriptionRequest)
+    public Subscription(TEvent subscribedEvent, SubscriptionRequest<TEvent> subscriptionRequest)
     {
         _subscribedEvent = subscribedEvent;
         OnEventExecute = subscriptionRequest.OnEventExecute;
@@ -43,11 +43,11 @@ where TEvent : IEvent
         Dispose();
     }
 
-    internal async Task HandleSubscribe(TEvent @event)
+    internal async ValueTask HandleSubscribe()
     {
         if (OnSubscribe is not null)
         {
-            await OnSubscribe.Invoke(@event);
+            await OnSubscribe.Invoke(_subscribedEvent);
         }
     }
 

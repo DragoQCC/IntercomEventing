@@ -1,10 +1,10 @@
-﻿using IntercomEventing.Features.Events;
+﻿/*using IntercomEventing.Features.Events;
 
 namespace IntercomEventing;
 
 public static class EventExtensions
 {
-    public static async Task<Subscription<TEvent>> Subscribe<TEvent>(this TEvent subscribedEvent,
+    public static async ValueTask<Subscription<TEvent>> Subscribe<TEvent>(this TEvent subscribedEvent,
         Func<TEvent,ValueTask> onEventExecute, Func<TEvent,Task>? onSubscribe = null,
         Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
     where TEvent : IEvent<TEvent>
@@ -30,12 +30,7 @@ public static class EventExtensions
     public static async Task<bool> Unsubscribe<TEvent>(this TEvent subscribedEvent, Subscription<TEvent> subscription)
     where TEvent : IEvent<TEvent>
     {
-        if(subscribedEvent.Subscribers.Contains(subscription))
-        {
-            await subscribedEvent.RemoveSubscriber(subscription);
-            return true;
-        }
-        return false;
+        return await subscribedEvent.Unsubscribe(subscription);
     }
 
     public static async Task DeleteEvent<TEvent>(this TEvent @event)
@@ -61,4 +56,4 @@ public static class EventExtensions
     where TCaller : class?
     where TEventArgs : IEventArgs<TEvent>
         => await @event.RaiseEvent(args, eventCaller);
-}
+}*/
