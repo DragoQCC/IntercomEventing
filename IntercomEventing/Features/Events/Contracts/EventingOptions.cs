@@ -27,7 +27,7 @@ public class EventingOptions
 
     internal static int SetThreadCount(EventingOptions options)
     {
-        return options.SyncType == EventingSyncType.Async ? 10 : 1;
+        return options.SyncType == EventingSyncType.Async ? 100 : 1;
     }
 
 }

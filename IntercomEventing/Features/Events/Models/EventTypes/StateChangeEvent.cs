@@ -25,8 +25,17 @@ public abstract record StateChangeEvent<TEvent, TState> : GenericEvent<TEvent>
         _currentState = initialState;
     }
 
-    protected virtual async void OnStateChanged(TState oldState, TState newState)
+    protected virtual async Task OnStateChanged(TState oldState, TState newState)
     {
-        await RaiseEvent<StateChangeEvent<TEvent, TState>>(this);
+        await RaiseEvent(CreateStateChangeEventCall(oldState, newState));
+    }
+    
+    protected virtual StateChangeEventCall<TEvent, TState> CreateStateChangeEventCall(TState oldState, TState newState)
+    {
+        return new StateChangeEventCall<TEvent, TState>(oldState, newState);
     }
 }
+
+public record StateChangeEventCall<TEvent, TState>(TState OldState, TState NewState) : EventCall<TEvent>
+where TEvent : StateChangeEvent<TEvent, TState>
+where TState : IEquatable<TState>;

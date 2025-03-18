@@ -2,12 +2,12 @@
 
 public record struct SubscriptionRequest<TEvent> where TEvent : GenericEvent<TEvent>
 {
-    public Func<TEvent, ValueTask> OnEventExecute { get; init; }
+    public Func<EventCall<TEvent>, Task> OnEventExecute { get; init; }
     public Func<Task>? OnUnsubscribe { get; init; }
     public Func<TEvent,Task>? OnSubscribe { get; init; }
     public Action<Exception>? ExceptionHandler { get; init; }
 
-    public SubscriptionRequest(Func<TEvent, ValueTask> onEventExecute, Func<TEvent,Task>? onSubscribe = null, Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
+    public SubscriptionRequest(Func<EventCall<TEvent>, Task> onEventExecute, Func<TEvent,Task>? onSubscribe = null, Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
     {
         OnEventExecute = onEventExecute;
         OnUnsubscribe = onUnsubscribe;
@@ -15,7 +15,7 @@ public record struct SubscriptionRequest<TEvent> where TEvent : GenericEvent<TEv
         ExceptionHandler = exceptionHandler;
     }
 
-    public static implicit operator SubscriptionRequest<TEvent>(Func<TEvent, ValueTask> onEventExecute)
+    public static implicit operator SubscriptionRequest<TEvent>(Func<EventCall<TEvent>, Task> onEventExecute)
     {
         return new(onEventExecute);
     }

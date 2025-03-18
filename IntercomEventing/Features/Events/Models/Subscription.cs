@@ -1,10 +1,10 @@
 ﻿namespace IntercomEventing.Features.Events;
 
 
-public sealed record Subscription<TEvent> : ISubscription
+public record Subscription<TEvent> : ISubscription
 where TEvent : GenericEvent<TEvent>
 {
-    private Func<TEvent, ValueTask> OnEventExecute { get; set; }
+    private Func<EventCall<TEvent>, Task> OnEventExecute { get; set; }
     private Func<Task>? OnUnsubscribe { get; init; }
     private Func<TEvent,Task>? OnSubscribe { get; init; }
     private Action<Exception>? ExceptionHandler { get; init; }
@@ -15,8 +15,7 @@ where TEvent : GenericEvent<TEvent>
     private readonly TEvent _subscribedEvent;
     private bool _isDisposed;
 
-    public Subscription(TEvent subscribedEvent, Func<TEvent, ValueTask> onEventExecute, Func<TEvent,Task>? onSubscribe = null, 
-        Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
+    public Subscription(TEvent subscribedEvent, Func<EventCall<TEvent>, Task> onEventExecute, Func<TEvent,Task>? onSubscribe = null, Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
     {
         _subscribedEvent = subscribedEvent;
         OnEventExecute = onEventExecute;
@@ -60,13 +59,13 @@ where TEvent : GenericEvent<TEvent>
         await _subscribedEvent.Unsubscribe(this);
     }
 
-    public ValueTask HandleEventExecute(TEvent @event)
+    public Task HandleEventExecute(EventCall<TEvent> eventCall)
     {
         if(SubCancelToken.IsCancellationRequested)
         {
-            return ValueTask.CompletedTask;
+            return Task.FromCanceled(SubCancelToken);
         }
-        return OnEventExecute(@event);
+        return OnEventExecute(eventCall);
     }
 
     internal void TryHandleException(Exception ex) => ExceptionHandler?.Invoke(ex);
@@ -99,5 +98,15 @@ where TEvent : GenericEvent<TEvent>
         await HandleUnsubscribe();
         await SubCancelTokenSource.CancelAsync();
         SubCancelTokenSource.Dispose();
+    }
+}
+
+public record Subscription<TEvent, TEventCall> : Subscription<TEvent>
+where TEvent : GenericEvent<TEvent>
+where TEventCall : EventCall<TEvent>
+{
+    public Subscription(TEvent subscribedEvent, Func<TEventCall, Task> onEventExecute, Func<TEvent,Task>? onSubscribe = null, Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
+        : base(subscribedEvent, eventCall => onEventExecute((TEventCall)eventCall), onSubscribe, onUnsubscribe, exceptionHandler)
+    {
     }
 }
