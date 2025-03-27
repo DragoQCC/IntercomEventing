@@ -1,5 +1,5 @@
-﻿using IntercomEventing.Features.Events;
-using IntercomEventing.Benchmark.UserCreationExample;
+﻿using IntercomEventing.Benchmark.UserCreationExample;
+using IntercomEventing.Features.Events;
 
 namespace IntercomEventing.Benchmark.TimedEventExample;
 
@@ -16,7 +16,7 @@ public record LogonSessionTimerEvent() : TimedEvent<LogonSessionTimerEvent>(Time
         base.Start();
     }
     
-    protected override TimedEventCall<LogonSessionTimerEvent> CreateTimedEventCall() => new LogonSessionTimerEventCall(_user);
+    protected override TimedEventCall<LogonSessionTimerEvent> CreateEventCall() => new LogonSessionTimerEventCall(_user);
 }
 
 public record LogonSessionTimerEventCall(User User) : TimedEventCall<LogonSessionTimerEvent>;

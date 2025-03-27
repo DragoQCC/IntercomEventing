@@ -1,13 +1,14 @@
-using HelpfulTypesAndExtensions;
-
 namespace IntercomEventing.Features.Events;
 
+/// <summary>
+/// Represents an event that debounces calls to the event handler <br/>
+/// The event will only be raised after the debounce interval has passed without any new calls to the event handler
+/// </summary>
+/// <typeparam name="TEvent"></typeparam>
 public abstract record DebounceEvent<TEvent> : GenericEvent<TEvent>
     where TEvent : DebounceEvent<TEvent>
 {
     private readonly TimeSpan _debounceInterval;
-    //private DateTime _lastEventTime = DateTime.MinValue;
-    //private readonly SemaphoreSlim _debounceLock = new(1);
     private CancellationTokenSource? _debounceTokenSource;
     private TaskCompletionSource<bool>? _currentDebounce;
     private readonly Lock _debounceSyncLock = new();
@@ -43,9 +44,9 @@ public abstract record DebounceEvent<TEvent> : GenericEvent<TEvent>
             {
                 if (completionSource == _currentDebounce && !token.IsCancellationRequested)
                 {
-                    //_lastEventTime = DateTime.UtcNow;
-                    // Fire and forget the event raising to prevent deadlocks
-                    _ = RaiseEvent(CreateDebounceEventCall(_debounceInterval));
+                    DebounceEventCall<TEvent> eventCall =  CreateEventCall();
+                    eventCall.DebounceInterval = _debounceInterval;
+                    _ = RaiseEvent(eventCall);
                     completionSource.TrySetResult(true);
                 }
             }
@@ -61,18 +62,22 @@ public abstract record DebounceEvent<TEvent> : GenericEvent<TEvent>
         }
     }
 
-    protected virtual DebounceEventCall<TEvent> CreateDebounceEventCall(TimeSpan debounceInterval)
-    {
-        return new DebounceEventCall<TEvent>(debounceInterval);
-    }
+    override abstract protected DebounceEventCall<TEvent> CreateEventCall();
 
     public override async ValueTask DisposeAsync()
     {
         _debounceTokenSource?.Cancel();
         _debounceTokenSource?.Dispose();
-        //_debounceLock.Dispose();
         await base.DisposeAsync();
     }
 }
 
-public record DebounceEventCall<TEvent>(TimeSpan DebounceInterval) : EventCall<TEvent> where TEvent : DebounceEvent<TEvent>;
+/// <summary>
+/// The event call for a debounce event <br/>
+/// Should be used to pass data to event handlers
+/// </summary>
+/// <typeparam name="TEvent"></typeparam>
+public record DebounceEventCall<TEvent> : EventCall<TEvent> where TEvent : DebounceEvent<TEvent>
+{
+    public TimeSpan DebounceInterval { get; internal set; }
+}

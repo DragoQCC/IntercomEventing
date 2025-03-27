@@ -1,6 +1,4 @@
-﻿using IntercomEventing.Benchmark.DebouncedEventExample;
-using IntercomEventing.Benchmark.ThresholdEventExample;
-using IntercomEventing.Benchmark.UserCreationExample;
+﻿using IntercomEventing.Benchmark.UserCreationExample;
 
 namespace IntercomEventing.Tests;
 

@@ -1,50 +1,34 @@
-﻿using System.Runtime.CompilerServices;
-using HelpfulTypesAndExtensions;
-using IntercomEventing.Models;
+﻿using HelpfulTypesAndExtensions;
+using JetBrains.Annotations;
 
 namespace IntercomEventing.Features.Events;
 
+/// <summary>
+/// Represents an event that can be raised and subscribed to <br/>
+/// The GenericEvent class is the base class for all events
+/// </summary>
+/// <typeparam name="TEvent"></typeparam>
 public abstract record GenericEvent<TEvent> : IAsyncDisposable where TEvent : GenericEvent<TEvent>
 {
-    private static readonly TimerCallback s_timerCallback = state => ((TaskCompletionSource<bool>)state!).TrySetResult(true);
-    private static readonly ObjectPool<Timer> s_timerPool = new(() => new Timer(s_timerCallback, null, Timeout.Infinite, Timeout.Infinite));
-    private static readonly ObjectPool<TaskCompletionSource<bool>> s_tcsPool = new(() => new TaskCompletionSource<bool>());
+    /// <summary>
+    /// The ID of the event <br/>
+    /// This ID is consistent for all event calls of the same event instance
+    /// </summary>
+    public Guid Id { get; } = Guid.CreateVersion7(DateTime.UtcNow);
     
-    public Guid Id { get; init; } = Guid.CreateVersion7(DateTime.UtcNow);
-    public HashSet<Subscription<TEvent>> Subscribers { get; init; } = new();
-
-    public async Task RaiseEvent(object? eventCaller = null)
-    {
-        if(Subscribers.Count == 0)
-        {
-            return;
-        }
-        EventCall<TEvent> eventCall = new();
-        eventCall.Metadata.EventCaller = eventCaller;
-        eventCall.Metadata.EventId = Id;
-        await NotifySubscribers(eventCall);
-    }
+    private HashSet<Subscription<TEvent>> Subscribers { get; } = new();
+    private readonly List<Task> _backgroundTasks = new();
+    private readonly SemaphoreSlim _backgroundTasksLock = new(1);
     
-    public async Task RaiseEvent<TEventCall>(TEventCall eventCall, object? eventCaller = null) where TEventCall : EventCall<TEvent>
-    {
-        if(Subscribers.Count == 0)
-        {
-            return;
-        }
-        eventCall.Metadata.EventCaller = eventCaller;
-        eventCall.Metadata.EventId = Id;
-        await NotifySubscribers(eventCall);
-    }
-    
-    
-    //TODO: Eval the logic of keeping this method, event handlers should want to always take a TEventCall type unless im not thinking about it correctly 
-    private async ValueTask<Subscription<TEvent>> Subscribe(Func<EventCall<TEvent>, Task> onEventExecute, Func<TEvent,Task>? onSubscribe = null, Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
-    {
-        var subscription = new Subscription<TEvent>((TEvent)this, onEventExecute, onSubscribe, onUnsubscribe, exceptionHandler);
-        await AddSubscriber(subscription);
-        return subscription;
-    }
-    
+    /// <summary>
+    /// Subscribes to the event
+    /// </summary>
+    /// <param name="onEventExecute"> The action to execute when the event is raised </param>
+    /// <param name="onSubscribe"> The action to execute when the subscription is created </param>
+    /// <param name="onUnsubscribe"> The action to execute when the subscription is removed </param>
+    /// <param name="exceptionHandler"> The action to execute when an exception is thrown </param>
+    /// <typeparam name="TEventCall"> The type of event call to subscribe to </typeparam>
+    /// <returns> The subscription for the event, which can be used to unsubscribe from the event </returns>
     public async ValueTask<Subscription<TEvent>> Subscribe<TEventCall>(Func<TEventCall, Task> onEventExecute, Func<TEvent,Task>? onSubscribe = null, Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null) 
     where TEventCall : EventCall<TEvent>
     {
@@ -53,6 +37,11 @@ public abstract record GenericEvent<TEvent> : IAsyncDisposable where TEvent : Ge
         return subscription;
     }
 
+    /// <summary>
+    /// Unsubscribes from the event
+    /// </summary>
+    /// <param name="subscription"> The subscription to unsubscribe from the event </param>
+    /// <returns> true if the subscription was removed, otherwise false </returns>
     public async Task<bool> Unsubscribe(Subscription<TEvent> subscription)
     {
         if(Subscribers.Contains(subscription))
@@ -62,16 +51,17 @@ public abstract record GenericEvent<TEvent> : IAsyncDisposable where TEvent : Ge
         }
         return false;
     }
+    
+    
+    /// <summary>
+    /// Checks if the subscription is still active <br/>
+    /// </summary>
+    /// <param name="subscription">The subscription to check</param>
+    /// <returns>true if the subscription is still active, otherwise false</returns>
+    [UsedImplicitly]
+    public bool IsSubscribed(Subscription<TEvent> subscription) => Subscribers.Contains(subscription);
 
-    private async Task DeleteEvent()
-    {
-        foreach (var subscription in Subscribers)
-        {
-            await subscription.DisposeAsync();
-        }
-        Subscribers.Clear();
-    }
-
+    
     protected async ValueTask AddSubscriber(Subscription<TEvent> subscription)
     {
         if (!EventingConfiguration.EventingOptionsInternal.AllowMultipleSubscribers && Subscribers.Count > 0)
@@ -95,105 +85,150 @@ public abstract record GenericEvent<TEvent> : IAsyncDisposable where TEvent : Ge
         await subscription.DisposeAsync();
     }
 
+    [UsedImplicitly]
+    abstract protected EventCall<TEvent> CreateEventCall();
+    
+    /// <summary>
+    /// Fires the event by invoking all subscribed event handlers
+    /// </summary>
+    /// <param name="eventCall"> The event call to raise (i.e., the event data you want to pass to the event handlers)</param>
+    /// <param name="eventCaller"> The object that raised the event (optional) </param>
+    /// <typeparam name="TEventCall"> The type of event call to raise </typeparam>
+    public async Task RaiseEvent<TEventCall>(TEventCall eventCall, object? eventCaller = null) where TEventCall : EventCall<TEvent>
+    {
+        if(Subscribers.Count == 0)
+        {
+            return;
+        }
+        eventCall.Metadata.EventCaller = eventCaller;
+        eventCall.Metadata.EventId = Id;
+        await NotifySubscribers(eventCall);
+    }
+    
     protected async Task NotifySubscribers(EventCall<TEvent> eventCall)
     {
-        var options = EventingConfiguration.EventingOptionsInternal;
-        var timeout = options.StartNextEventHandlerAfter;
-
         // Fast path for single subscriber
         if (Subscribers.Count == 1)
         {
             var subscription = Subscribers.First();
-            try
-            {
-                using var cts = new CancellationTokenSource(timeout);
-                await ExecuteWithTimeout(eventCall, subscription, cts.Token);
-            }
-            catch (Exception ex)
-            {
-                subscription.TryHandleException(ex);
-            }
+            await ExecuteWithTimeout(eventCall, subscription);
             return;
         }
+        var options = EventingConfiguration.EventingOptionsInternal;
 
-        if (EventingConfiguration.IsSync)
+        if (EventingConfiguration.IsSeq)
         {
             foreach (var subscription in Subscribers)
             {
-                try
-                {
-                    using var cts = new CancellationTokenSource(timeout);
-                    await ExecuteWithTimeout(eventCall, subscription, cts.Token);
-                }
-                catch (Exception ex)
-                {
-                    subscription.TryHandleException(ex);
-                }
+                await ExecuteWithTimeout(eventCall, subscription);
             }
         }
         else
         {
-            var tasks = new Task[Subscribers.Count];
-            var i = 0;
+            List<Lazy<Task>> tasks = new(Subscribers.Count);
             foreach (var subscription in Subscribers)
             {
-                using var cts = new CancellationTokenSource(timeout);
-                tasks[i++] = ExecuteWithTimeout(eventCall, subscription, cts.Token);
+                tasks.Add(new Lazy<Task>(() => ExecuteWithTimeout(eventCall, subscription)));
             }
-            await Task.WhenAll(tasks);
+            //if the max number of concurrent handlers is lower then the number of tasks to run we need to run in batches
+            if (options.MaxNumberOfConcurrentHandlers < tasks.Count)
+            {
+                DebugHelp.DebugWriteLine($"Max number of concurrent handlers is {options.MaxNumberOfConcurrentHandlers}");
+                for (int j = 0; j < tasks.Count; j += options.MaxNumberOfConcurrentHandlers)
+                {
+                    var batch = tasks.Skip(j).Take(options.MaxNumberOfConcurrentHandlers).ToArray();
+                    DebugHelp.DebugWriteLine($"Running batch number {j} of {batch.Length} event handlers in parallel");
+                    await Task.WhenAll(batch.Select(t => t.Value));
+                }
+            }
+            else
+            {
+                DebugHelp.DebugWriteLine($"Max number of concurrent handlers is {options.MaxNumberOfConcurrentHandlers}");
+                DebugHelp.DebugWriteLine($"Running {tasks.Count} event handlers in parallel");
+                await Task.WhenAll(tasks.Select(t => t.Value));
+            }
         }
     }
-
     
-    private async Task ExecuteWithTimeout(EventCall<TEvent> eventCall, Subscription<TEvent> subscription, CancellationToken cancellationToken)
+    private async Task ExecuteWithTimeout(EventCall<TEvent> eventCall, Subscription<TEvent> subscription)
     {
+        Lazy<Task> executionTask = new(() => subscription.HandleEventExecute(eventCall));
+        //Automatically cancels if the CT timer expires
+        //Add a small buffer to the timeout to prevent cases where the timeout is exactly the same as the event handler execution time
+        var timeoutValue = EventingConfiguration.EventingOptionsInternal.StartNextEventHandlerAfter + TimeSpan.FromMilliseconds(50);
+        var cancellationTokenSource = new CancellationTokenSource(timeoutValue);
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        cancellationTokenSource.Token.Register(() => tcs.TrySetResult(true));
+        
         try
         {
-            var executionTask = subscription.HandleEventExecute(eventCall);
-            
-            // Get pooled TCS and ensure it's in a clean state
-            //var tcs = s_tcsPool.Get();
-            //tcs.TrySetCanceled(); // Cancel any previous state
-            var newTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            
-            try
+            // Wait for either completion or timeout
+            var completedTask = await Task.WhenAny(executionTask.Value, tcs.Task);
+            if (completedTask == tcs.Task && tcs.Task.Result is true)
             {
-                using var timer = new Timer(s_timerCallback, newTcs, EventingConfiguration.EventingOptionsInternal.StartNextEventHandlerAfter, Timeout.InfiniteTimeSpan);
-                
-                // Wait for either completion or timeout
-                var completedTask = await Task.WhenAny(executionTask, newTcs.Task);
-                if (completedTask == newTcs.Task)
+                // Timeout occurred - continue execution in the background
+                DebugHelp.DebugWriteLine($"Timeout of {timeoutValue.Seconds} seconds occurred - continuing execution in background and starting next event handler");
+                var backgroundTask = Task.Run(async () =>
                 {
-                    // Timeout occurred - continue execution in background
-                    DebugHelp.DebugWriteLine("Timeout occurred - continue execution in background");
-                    _ = executionTask.ContinueWith(t =>
+                    try
                     {
-                        if (t.IsFaulted && t.Exception != null)
-                        {
-                            subscription.TryHandleException(t.Exception.InnerException ?? t.Exception);
-                        }
-                    }, TaskContinuationOptions.ExecuteSynchronously);
-                }
-                else
+                        await executionTask.Value;
+                    }
+                    catch (Exception ex)
+                    {
+                        subscription.TryHandleException(ex);
+                    }
+                });
+                await _backgroundTasksLock.WaitAsync();
+                try
                 {
-                    // Execution completed before timeout
-                    await executionTask;
+                    _backgroundTasks.Add(backgroundTask);
+                    // Clean up completed tasks
+                    _backgroundTasks.RemoveAll(t => t.IsCompleted);
                 }
-            }
-            finally
-            {
-                //s_tcsPool.Return(tcs);
+                finally
+                {
+                    _backgroundTasksLock.Release();
+                }
             }
         }
-        catch (Exception ex)
+        finally
         {
-            DebugHelp.DebugWriteLine($"Event handler failed with error {ex.Message}");
-            subscription.TryHandleException(ex);
+            cancellationTokenSource.Dispose();
         }
     }
 
+    private async Task DeleteEvent()
+    {
+        foreach (var subscription in Subscribers)
+        {
+            await subscription.DisposeAsync();
+        }
+        Subscribers.Clear();
+    }
+    
+    /// <summary>
+    /// Disposes the event and all associated resources <br/>
+    /// This will unsubscribe all subscribers and clean up any resources used by the event
+    /// </summary>
     public virtual async ValueTask DisposeAsync()
     {
+        // Wait for all background tasks to complete before disposing
+        await _backgroundTasksLock.WaitAsync();
+        try
+        {
+            if (_backgroundTasks.Count > 0)
+            {
+                DebugHelp.DebugWriteLine($"Waiting for {_backgroundTasks.Count} background tasks to complete");
+                await Task.WhenAll(_backgroundTasks);
+                _backgroundTasks.Clear();
+            }
+        }
+        finally
+        {
+            _backgroundTasksLock.Release();
+            _backgroundTasksLock.Dispose();
+        }
         await DeleteEvent();
     }
 }

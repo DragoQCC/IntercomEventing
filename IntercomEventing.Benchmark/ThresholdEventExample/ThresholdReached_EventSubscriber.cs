@@ -1,19 +1,12 @@
-﻿using IntercomEventing.Features.Events;
-
-namespace IntercomEventing.Benchmark.ThresholdEventExample;
+﻿namespace IntercomEventing.Benchmark.ThresholdEventExample;
 
 public class ThresholdReached_EventSubscriber
 {
-    public static async Task HealthyIntercomEventHandlerAsync(CounterThresholdReachedEventCall @event)
-    {
-        await Task.Delay(100);
-    }
-    
-    public static async Task HealthyClassicEventHandlerAsync(object? sender, ThresholdReached_ClassicEventProducer.ThresholdInfo args)
-    {
-        await Task.Delay(100);
-    }
-    
+   
+    public static async Task HealthyIntercomEventHandlerAsync(CounterThresholdReachedEventCall @event) => await Task.Delay(100);
+
+    public static async Task HealthyClassicEventHandlerAsync(object? sender, ThresholdReached_ClassicEventProducer.ThresholdInfo args) => await Task.Delay(100);
+
     public static async Task FaultyIntercomEventHandlerAsync(CounterThresholdReachedEventCall @event)
     {
        //throw an exception at random
@@ -47,14 +40,15 @@ public class ThresholdReached_EventSubscriber
     //Mimic a "long-running" event handler
     public static async Task LongRunningIntercomEventHandlerAsync(CounterThresholdReachedEventCall @event)
     {
+        var callTime = @event.Metadata.LastEventTime.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        Console.WriteLine($"Handler for Event Call {@event.Metadata.EventCallId} for counter value {@event.CurrentValue} started at {callTime}");
         await Task.Delay(5000);
+        callTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        Console.WriteLine($"Handler for Event Call {@event.Metadata.EventCallId} for counter value {@event.CurrentValue} finished at {callTime}");
     }
 
     //Mimic a "long-running event" handler
-    public static async Task LongRunningClassicEventHandlerAsync(object? sender, ThresholdReached_ClassicEventProducer.ThresholdInfo args)
-    {
-        await Task.Delay(5000);
-    }
+    public static async Task LongRunningClassicEventHandlerAsync(object? sender, ThresholdReached_ClassicEventProducer.ThresholdInfo args) => await Task.Delay(5000);
 
     //create hanging event handlers that get stuck in a loop
     public static async Task HangingIntercomEventHandlerAsync(CounterThresholdReachedEventCall @event)

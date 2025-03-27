@@ -1,15 +1,20 @@
 ﻿namespace IntercomEventing.Features.Events;
 
 
-public record Subscription<TEvent> : ISubscription
-where TEvent : GenericEvent<TEvent>
+/// <summary>
+/// Represents a subscription to an event <br/>
+/// A subscription defines how the event should be handled, including initial actions during subscription, and any cleanup actions during unsubscription <br/>
+/// Subscriptions are valid for the life of the event (i.e. until the event is disposed), or until the subscription is canceled earlier
+/// </summary>
+/// <typeparam name="TEvent">The type of event that is being subscribed to</typeparam>
+public record Subscription<TEvent> where TEvent : GenericEvent<TEvent>
 {
-    private Func<EventCall<TEvent>, Task> OnEventExecute { get; set; }
-    private Func<Task>? OnUnsubscribe { get; init; }
-    private Func<TEvent,Task>? OnSubscribe { get; init; }
-    private Action<Exception>? ExceptionHandler { get; init; }
-    public CancellationToken SubCancelToken { get; init; }
-    internal CancellationTokenSource SubCancelTokenSource { get; init; }
+    private Func<EventCall<TEvent>, Task> OnEventExecute { get; }
+    private Func<Task>? OnUnsubscribe { get; }
+    private Func<TEvent,Task>? OnSubscribe { get; }
+    private Action<Exception>? ExceptionHandler { get; }
+    public CancellationToken SubCancelToken { get;  }
+    internal CancellationTokenSource SubCancelTokenSource { get;  }
     
     // Add reference to the event
     private readonly TEvent _subscribedEvent;
@@ -59,18 +64,36 @@ where TEvent : GenericEvent<TEvent>
         await _subscribedEvent.Unsubscribe(this);
     }
 
-    public Task HandleEventExecute(EventCall<TEvent> eventCall)
+    internal Task HandleEventExecute(EventCall<TEvent> eventCall)
     {
         if(SubCancelToken.IsCancellationRequested)
         {
             return Task.FromCanceled(SubCancelToken);
         }
-        return OnEventExecute(eventCall);
+        try
+        {
+            return OnEventExecute(eventCall);
+        }
+        catch (Exception e)
+        {
+            TryHandleException(e);
+            return Task.CompletedTask;
+        }
     }
 
-    internal void TryHandleException(Exception ex) => ExceptionHandler?.Invoke(ex);
+    internal void TryHandleException(Exception ex) 
+    {
+        if(ExceptionHandler is not null)
+        {
+            ExceptionHandler?.Invoke(ex);
+            return;
+        }
+        EventingConfiguration.EventingOptionsInternal.DefaultExceptionHandler?.Invoke(ex);
+    }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Unsubscribes from the event, and cleans up any resources used by the subscription (ex. cancellation tokens)
+    /// </summary>
     public void Dispose()
     {
         if (_isDisposed)
@@ -85,7 +108,10 @@ where TEvent : GenericEvent<TEvent>
         SubCancelTokenSource.Dispose();
     }
 
-    /// <inheritdoc />
+    
+    /// <summary>
+    /// Unsubscribes from the event, and cleans up any resources used by the subscription (ex. cancellation tokens)
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         if(_isDisposed)
@@ -101,9 +127,7 @@ where TEvent : GenericEvent<TEvent>
     }
 }
 
-public record Subscription<TEvent, TEventCall> : Subscription<TEvent>
-where TEvent : GenericEvent<TEvent>
-where TEventCall : EventCall<TEvent>
+public record Subscription<TEvent, TEventCall> : Subscription<TEvent> where TEvent : GenericEvent<TEvent> where TEventCall : EventCall<TEvent>
 {
     public Subscription(TEvent subscribedEvent, Func<TEventCall, Task> onEventExecute, Func<TEvent,Task>? onSubscribe = null, Func<Task>? onUnsubscribe = null, Action<Exception>? exceptionHandler = null)
         : base(subscribedEvent, eventCall => onEventExecute((TEventCall)eventCall), onSubscribe, onUnsubscribe, exceptionHandler)

@@ -3,13 +3,14 @@
 namespace IntercomEventing.Tests;
 
 
-public record MockTimedEvent() : TimedEvent<MockTimedEvent>(TimeSpan.FromSeconds(1))
+public record MockTimedEvent() : TimedEvent<MockTimedEvent>(TimeSpan.FromSeconds(2))
 {
     /// <inheritdoc />
-    override protected TimedEventCall<MockTimedEvent> CreateTimedEventCall() => new MockTimedEventCall();
+    override protected TimedEventCall<MockTimedEvent> CreateEventCall() => new MockTimedEventCall();
 }
 
 public record MockTimedEventCall(int BestNumber = 42) : TimedEventCall<MockTimedEvent>;
+
 
 public class TimedEventTests
 {
@@ -26,18 +27,17 @@ public class TimedEventTests
         {
             bestNumber = eventCall.BestNumber;
             eventTriggered = true;
-            interval =  eventCall.Interval;
+            interval = eventCall.Interval;
             await Task.CompletedTask;
         });
 
         // Act
         timedEvent.Start();
-        await Task.Delay(1500); // Wait for more than the interval
+        await Task.Delay(2500); // Wait for more than the interval
 
         // Assert
         await Assert.That(eventTriggered).IsTrue();
         await Assert.That(bestNumber).IsEqualTo(42);
-        await Assert.That(interval).IsEqualTo(TimeSpan.FromSeconds(1));
+        await Assert.That(interval).IsEqualTo(TimeSpan.FromSeconds(2));
     }
-    
 }

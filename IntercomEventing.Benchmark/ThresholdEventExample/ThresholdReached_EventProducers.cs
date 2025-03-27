@@ -3,10 +3,11 @@ namespace IntercomEventing.Benchmark.ThresholdEventExample;
 
 public class ThresholdReached_IntercomEventProducer
 {
-    public CounterThresholdReachedEvent ThresholdReachedEvent { get; init; } = new();
+    public CounterThresholdReachedEvent ThresholdReachedEvent { get; } = new();
     
+    public async Task IncrementCountEvent() => await ThresholdReachedEvent.IncrementValue(1);
+
    
-    public async Task IncrementCountEvent() => ThresholdReachedEvent.CurrentValue++;
 }
 
 public class ThresholdReached_ClassicEventProducer

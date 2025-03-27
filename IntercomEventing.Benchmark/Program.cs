@@ -7,62 +7,55 @@ using IntercomEventing.Benchmark.ThresholdEventExample;
 using IntercomEventing.Benchmark.TimedEventExample;
 using IntercomEventing.Benchmark.UserCreationExample;
 using IntercomEventing.Features.Events;
+using Microsoft.Extensions.Hosting;
 
 namespace IntercomEventing.Benchmark;
 
 class Program
 {
-    public static int NUM_SUBSCRIBERS {get;} = 10;
-    public static int NUM_EVENT_EXEC {get;} = 10;
+    public static int NUM_SUBSCRIBERS {get;} = 100;
+    public static int NUM_EVENT_EXEC {get;} = 100;
     static Stopwatch stopwatch = Stopwatch.StartNew();
-    
+
     static async Task Main(string[] args)
     {
-        //BenchmarkRunner.Run<EventBenchmarks>();
-        //await CreateAndRunEvents();
-        //await CreateUserCreatedEvent();
-        //await CreateTimedEventForUserLogonSession();
-        //await CreateServerPowerStateChangedEvent();
+        HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+        builder.Services.AddIntercomEventing(
+            options =>
+            {
+                options.SyncType = EventingSyncType.Parallel;
+                options.MaxNumberOfConcurrentHandlers = 100;
+                options.StartNextEventHandlerAfter = TimeSpan.FromSeconds(1);
+                options.DefaultExceptionHandler = ex => Console.WriteLine($"Default exception handler called with error {ex.Message}");
+            });
+        IHost host = builder.Build();
+        await host.StartAsync();
         
-        //clear the console and run this method 20 times
-        for (int i = 0; i < 20; i++)
-        {
-            Console.Clear();
-            await CreateDebouncedInputEvent();
-        }
+        
+        //BenchmarkRunner.Run<EventBenchmarks>();
+        await CreateAndRunEvents();
+        await CreateUserCreatedEvent();
+        await CreateTimedEventForUserLogonSession();
+        await CreateServerPowerStateChangedEvent();
+        await CreateDebouncedInputEvent();
+        await HandlerTimeoutExample();
+        
+        await host.WaitForShutdownAsync();
         
     }
 
     public static async Task CreateAndRunEvents()
     {
-        Console.WriteLine("Running benchmarks...");
+        Console.WriteLine("Running events with handlers that each behave differently...");
         Console.WriteLine("\nExecuting healthy event handlers...");
         await CreateHealthyEvents();
         Console.WriteLine("Waiting 5 seconds for the healthy event handlers to complete...");
         await Task.Delay(5000);
         Console.WriteLine("\nExecuting faulty event handlers that randomly throw exceptions...");
         await CreateFaultyEvents();
-        Console.WriteLine("\nExecuting long running event handlers that take 5 seconds to complete...");
+        Console.WriteLine("\nExecuting long running event handlers that take 5-10 seconds to complete...");
         await CreateLongRunningEvents();
-        
-        Console.WriteLine("\nHanging event handlers that never complete...");
-        //add in a force exit after 2 minutes
-        Task exitHangingWait = Task.Run(async () =>
-        {
-            await Task.Delay(1000 * 60 * 2);
-        });
-       Task hangingEvents = CreateHangingEvents();
-
-       var finishedTask = await Task.WhenAny(exitHangingWait, hangingEvents);
-       if(finishedTask == exitHangingWait)
-       {
-           //cancel the hanging events task
-           hangingEvents.Dispose();
-       }
-       Console.WriteLine("Benchmark complete");
     }
-
-    
 
 
     public static async Task CreateHealthyEvents()
@@ -86,11 +79,7 @@ class Program
         }
         var timeToSubscribeClassic = stopwatch.Elapsed;
         stopwatch.Restart();
-        
-        
-        Console.WriteLine($"\nTime to subscribe {NUM_SUBSCRIBERS} intercom event handlers -> {timeToSubscribeIntercom.Seconds}s:{timeToSubscribeIntercom.Milliseconds:D3}ms:{timeToSubscribeIntercom.Microseconds:D3}us");
-        Console.WriteLine($"Time to subscribe {NUM_SUBSCRIBERS} classic event handlers -> {timeToSubscribeClassic.Seconds}s:{timeToSubscribeClassic.Milliseconds:D3}ms:{timeToSubscribeClassic.Microseconds:D3}us");
-        Console.WriteLine($"\nRunning {NUM_EVENT_EXEC} healthy events for each type...");
+
         
         
         for(int i = 0; i < NUM_EVENT_EXEC; i++)
@@ -106,7 +95,9 @@ class Program
         }
         var timeToRunClassic = stopwatch.Elapsed;
         
-        Console.WriteLine($"Time to run {NUM_EVENT_EXEC} healthy intercom events for {NUM_SUBSCRIBERS} subscribers -> {timeToRunIntercom.Seconds}s:{timeToRunIntercom.Milliseconds:D3}ms:{timeToRunIntercom.Microseconds:D3}us");
+        Console.WriteLine($"\nTime to subscribe {NUM_SUBSCRIBERS} intercom event handlers -> {timeToSubscribeIntercom.Seconds}s:{timeToSubscribeIntercom.Milliseconds:D3}ms:{timeToSubscribeIntercom.Microseconds:D3}us");
+        Console.WriteLine($"Time to subscribe {NUM_SUBSCRIBERS} classic event handlers -> {timeToSubscribeClassic.Seconds}s:{timeToSubscribeClassic.Milliseconds:D3}ms:{timeToSubscribeClassic.Microseconds:D3}us");
+        Console.WriteLine($"\nTime to run {NUM_EVENT_EXEC} healthy intercom events for {NUM_SUBSCRIBERS} subscribers -> {timeToRunIntercom.Seconds}s:{timeToRunIntercom.Milliseconds:D3}ms:{timeToRunIntercom.Microseconds:D3}us");
         Console.WriteLine($"Time to run {NUM_EVENT_EXEC} healthy classic events for {NUM_SUBSCRIBERS} subscribers -> {timeToRunClassic.Seconds}s:{timeToRunClassic.Milliseconds:D3}ms:{timeToRunClassic.Microseconds:D3}us");
     }
     
@@ -162,7 +153,18 @@ class Program
         ThresholdReached_IntercomEventProducer intercomEventClass = new();
         for (int i = 0; i < NUM_SUBSCRIBERS; i++)
         {
-            await intercomEventClass.ThresholdReachedEvent.Subscribe<CounterThresholdReachedEventCall>(ThresholdReached_EventSubscriber.LongRunningIntercomEventHandlerAsync);
+            await intercomEventClass.ThresholdReachedEvent.Subscribe<CounterThresholdReachedEventCall>(
+                onEventExecute: ThresholdReached_EventSubscriber.LongRunningIntercomEventHandlerAsync
+               ,onSubscribe:  @event =>
+               {
+                   Console.WriteLine($"Subscribing to intercom event {nameof(@event)}");
+                   return Task.CompletedTask;
+               }
+               ,onUnsubscribe:  () =>
+               {
+                   Console.WriteLine("Unsubscribing from intercom event");
+                   return Task.CompletedTask;
+               });
         }
         var timeToSubscribeIntercom = stopwatch.Elapsed;
         stopwatch.Restart();
@@ -178,11 +180,6 @@ class Program
         stopwatch.Restart();
         
         
-        Console.WriteLine($"\nTime to subscribe {NUM_SUBSCRIBERS} intercom event handlers -> {timeToSubscribeIntercom.Seconds}s:{timeToSubscribeIntercom.Milliseconds:D3}ms:{timeToSubscribeIntercom.Microseconds:D3}us");
-        Console.WriteLine($"Time to subscribe {NUM_SUBSCRIBERS} classic event handlers -> {timeToSubscribeClassic.Seconds}s:{timeToSubscribeClassic.Milliseconds:D3}ms:{timeToSubscribeClassic.Microseconds:D3}us");
-        Console.WriteLine($"\nRunning {NUM_EVENT_EXEC} long running events for each type...\n");
-        
-        
         for(int i = 0; i < NUM_EVENT_EXEC; i++)
         {
             await intercomEventClass.IncrementCountEvent();
@@ -196,7 +193,9 @@ class Program
         }
         var timeToRunClassic = stopwatch.Elapsed;
 
-        Console.WriteLine($"Time to run {NUM_EVENT_EXEC} long running intercom events for {NUM_SUBSCRIBERS} subscribers -> {timeToRunIntercom.Seconds}s:{timeToRunIntercom.Milliseconds:D3}ms:{timeToRunIntercom.Microseconds:D3}us");
+        Console.WriteLine($"\nTime to subscribe {NUM_SUBSCRIBERS} intercom event handlers -> {timeToSubscribeIntercom.Seconds}s:{timeToSubscribeIntercom.Milliseconds:D3}ms:{timeToSubscribeIntercom.Microseconds:D3}us");
+        Console.WriteLine($"Time to subscribe {NUM_SUBSCRIBERS} classic event handlers -> {timeToSubscribeClassic.Seconds}s:{timeToSubscribeClassic.Milliseconds:D3}ms:{timeToSubscribeClassic.Microseconds:D3}us");
+        Console.WriteLine($"\nTime to run {NUM_EVENT_EXEC} long running intercom events for {NUM_SUBSCRIBERS} subscribers -> {timeToRunIntercom.Seconds}s:{timeToRunIntercom.Milliseconds:D3}ms:{timeToRunIntercom.Microseconds:D3}us");
         Console.WriteLine($"Time to run {NUM_EVENT_EXEC} long running classic events for {NUM_SUBSCRIBERS} subscribers -> {timeToRunClassic.Seconds}s:{timeToRunClassic.Milliseconds:D3}ms:{timeToRunClassic.Microseconds:D3}us");
     }
     
@@ -320,7 +319,7 @@ class Program
         
         await inputEventProducer.InputChangedEvent.Subscribe<InputChangedEventCall>(inputEventSubscriber.HandleInputChangedEventAsync);
 
-        // Simulate user typing "Hello World!" rapidly
+        //Simulate user typing "Hello World!" rapidly
         var inputs = new[]
         {
             "H",
@@ -345,5 +344,24 @@ class Program
         }
         // Wait to ensure all debounced events are processed
         await Task.Delay(5000);
+    }
+
+    public static async Task HandlerTimeoutExample()
+    {
+        //the event 
+        UserCreatedEvent userCreatedEvent = new();
+        
+        //Subscribe to the event with a timeout of 1 second
+        await userCreatedEvent.Subscribe<UserCreatedEventCall>(async eventCall =>
+        {
+            // Simulate a long-running task
+            Console.WriteLine($"Event call {eventCall.Metadata.EventCallId} started at {DateTime.UtcNow}");
+            await Task.Delay(5000); 
+            Console.WriteLine($"Event call {eventCall.Metadata.EventCallId} finished at {DateTime.UtcNow}");
+        });
+        
+        // Raise the event twice
+        await userCreatedEvent.RaiseEvent(new UserCreatedEventCall(new User("John Doe", "john.doe@example.com")));
+        await userCreatedEvent.RaiseEvent(new UserCreatedEventCall(new User("Jane Doe", "jane.doe@example.com")));
     }
 }

@@ -2,15 +2,34 @@
 
 namespace IntercomEventing.Benchmark.ThresholdEventExample;
 
-//public record CounterThresholdReachedEvent : GenericEvent<CounterThresholdReachedEvent>;
-//public record CounterThresholdReachedEventCall(int Threshold, int CurrentValue) : EventCall<CounterThresholdReachedEvent>;
+public record CounterReachedGenericEvent : GenericEvent<CounterReachedGenericEvent>
+{
+    public int Threshold { get; init; } = 1;
+    public int CurrentValue { get; set; } = 0;
+
+    public async Task IncrementValue(int value)
+    {
+        CurrentValue += value;
+        if(CurrentValue < Threshold)
+        {
+            return;
+        }
+        await RaiseEvent(CreateEventCall());
+    }
+    
+    /// <inheritdoc />
+    override protected EventCall<CounterReachedGenericEvent> CreateEventCall() => new CounterReachedGenericEventCall(Threshold, CurrentValue);
+}
+
+public record CounterReachedGenericEventCall(int Threshold, int CurrentValue) : EventCall<CounterReachedGenericEvent>;
+
 
 public record CounterThresholdReachedEvent() : ThresholdEvent<CounterThresholdReachedEvent, int>(1)
 {
-    protected override ThresholdEventCall<CounterThresholdReachedEvent, int> CreateThresholdEventCall(int threshold, int currentValue) => new CounterThresholdReachedEventCall(threshold, currentValue);
+    protected override ThresholdEventCall<CounterThresholdReachedEvent, int> CreateEventCall() => new CounterThresholdReachedEventCall();
 }
 
-public record CounterThresholdReachedEventCall(int Threshold, int CurrentValue) : ThresholdEventCall<CounterThresholdReachedEvent,int>(Threshold, CurrentValue);
+public record CounterThresholdReachedEventCall : ThresholdEventCall<CounterThresholdReachedEvent,int>;
 
 
 

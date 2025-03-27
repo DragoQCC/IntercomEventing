@@ -1,33 +1,49 @@
 ﻿namespace IntercomEventing.Features.Events;
 
+/// <summary>
+/// Options for configuring the eventing system
+/// </summary>
 public class EventingOptions
 {
-    // controls if the event handlers are called sequentially or in parallel
-    public EventingSyncType SyncType { get; set; } = EventingSyncType.Async;
+    /// <summary>
+    /// Controls whether event handlers are executed sequentially or in parallel on a per event call basis
+    /// </summary>
+    public EventingSyncType SyncType { get; set; } = EventingSyncType.Parallel;
 
-    //The maximum number of threads that can be used to handle an event, each new thread will start a new subscriber
-    //only used for async event handling
-    public int MaxThreadsPerEvent { get; set; }
+    /// <summary>
+    /// The maximum number of event handlers that can be executed at the same time on a per event call basis <br/>
+    /// Default values are 100 for parallel and 1 for sequential
+    /// </summary>
+    public int MaxNumberOfConcurrentHandlers { get; set; }
 
-    //If true then more than one subscriber can subscribe to the same event
+    /// <summary>
+    /// If true then more than one subscriber can subscribe to the same event,
+    /// otherwise only one subscriber can subscribe to the event
+    /// </summary>
     public bool AllowMultipleSubscribers { get; set; } = true;
 
-    //If Subscriber A blocks for longer then 1 second then the next subscriber will be called on a new thread regardless of the MaxThreadsPerEvent or SyncType
+    /// <summary>
+    /// The time to wait before starting the next event handler <br/>
+    /// Default value is 1 second <br/>
+    /// The current event handler will continue to run within a Task <see cref="Task{TResult}.Run(Func{Task})"/> in the background
+    /// </summary>
     public TimeSpan StartNextEventHandlerAfter { get; set; } = TimeSpan.FromMilliseconds(1000);
 
+    /// <summary>
+    /// The default exception handler to use for all events <br/>
+    /// If an exception handler is not provided when subscribing to an event, this handler will be used <br/>
+    /// If no default exception handler is provided, and one is not provided when subscribing to an event, exceptions will be suppressed and not propagated to the caller 
+    /// </summary>
+    public Action<Exception>? DefaultExceptionHandler { get; set; }
 
 
     public EventingOptions()
     {
-        if(MaxThreadsPerEvent == 0)
+        if(MaxNumberOfConcurrentHandlers == 0)
         {
-            MaxThreadsPerEvent = SetThreadCount(this);
+            MaxNumberOfConcurrentHandlers = SetMaxConcurrentEventHandlers(this);
         }
     }
 
-    internal static int SetThreadCount(EventingOptions options)
-    {
-        return options.SyncType == EventingSyncType.Async ? 100 : 1;
-    }
-
+    internal static int SetMaxConcurrentEventHandlers(EventingOptions options) => options.SyncType == EventingSyncType.Parallel ? 100 : 1;
 }

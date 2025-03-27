@@ -14,9 +14,7 @@ public record InputChangedEvent() : DebounceEvent<InputChangedEvent>(TimeSpan.Fr
         await StartDebounce();
     }
 
-    protected override DebounceEventCall<InputChangedEvent> CreateDebounceEventCall(TimeSpan debounceInterval) 
-        => new InputChangedEventCall(debounceInterval, _lastInput ?? throw new InvalidOperationException("No input available"));
+    protected override InputChangedEventCall CreateEventCall() => new(_lastInput ?? throw new InvalidOperationException("No input available"));
 }
 
-public record InputChangedEventCall(TimeSpan DebounceInterval, UserInput Input) 
-    : DebounceEventCall<InputChangedEvent>(DebounceInterval);
+public record InputChangedEventCall(UserInput Input) : DebounceEventCall<InputChangedEvent>;

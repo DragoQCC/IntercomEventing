@@ -15,9 +15,5 @@ public record struct SubscriptionRequest<TEvent> where TEvent : GenericEvent<TEv
         ExceptionHandler = exceptionHandler;
     }
 
-    public static implicit operator SubscriptionRequest<TEvent>(Func<EventCall<TEvent>, Task> onEventExecute)
-    {
-        return new(onEventExecute);
-    }
-    
+    public static implicit operator SubscriptionRequest<TEvent>(Func<EventCall<TEvent>, Task> onEventExecute) => new(onEventExecute);
 }

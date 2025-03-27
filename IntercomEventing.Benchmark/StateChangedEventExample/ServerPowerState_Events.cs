@@ -1,5 +1,5 @@
-﻿using IntercomEventing.Features.Events;
-using HelpfulTypesAndExtensions;
+﻿using HelpfulTypesAndExtensions;
+using IntercomEventing.Features.Events;
 
 namespace IntercomEventing.Benchmark.StateChangedEventExample;
 
@@ -35,7 +35,9 @@ public record ServerPowerChangedEvent() : StateChangeEvent<ServerPowerChangedEve
         _server = server;
         CurrentState = newState;
     }
-    
-    protected override StateChangeEventCall<ServerPowerChangedEvent, ServerPower> CreateStateChangeEventCall(ServerPower oldState, ServerPower newState) => new ServerPowerChangedEventCall(_server,oldState, newState);
+
+    /// <inheritdoc />
+    override protected StateChangeEventCall<ServerPowerChangedEvent, ServerPower> CreateEventCall() => new ServerPowerChangedEventCall(_server);
 }
-public record ServerPowerChangedEventCall(Server Server,ServerPower OldState, ServerPower NewState) : StateChangeEventCall<ServerPowerChangedEvent, ServerPower>(OldState, NewState);
+
+public record ServerPowerChangedEventCall(Server Server) : StateChangeEventCall<ServerPowerChangedEvent, ServerPower>;

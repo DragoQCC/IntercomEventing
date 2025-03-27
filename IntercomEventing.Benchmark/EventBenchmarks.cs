@@ -4,14 +4,14 @@ using IntercomEventing.Benchmark.ThresholdEventExample;
 namespace IntercomEventing.Benchmark;
 
 [MemoryDiagnoser]
-[HideColumns(new []{"Job"})]
+[HideColumns("Job")]
 public class EventBenchmarks
 {
     
     [Benchmark]
     public async Task IntercomEvent()
     {
-        ThresholdReached_IntercomEventProducer intercomEventClass = new();
+       ThresholdReached_IntercomEventProducer intercomEventClass = new();
         for (int i = 0; i < Program.NUM_SUBSCRIBERS; i++)
         {
             await intercomEventClass.ThresholdReachedEvent.Subscribe<CounterThresholdReachedEventCall>(ThresholdReached_EventSubscriber.HealthyIntercomEventHandlerAsync);

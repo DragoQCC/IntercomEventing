@@ -1,5 +1,4 @@
 ﻿using HelpfulTypesAndExtensions;
-using IntercomEventing.Features.Events;
 
 namespace IntercomEventing.Benchmark.UserCreationExample;
 
