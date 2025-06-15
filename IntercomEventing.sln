@@ -6,6 +6,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntercomEventing.Tests", "I
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntercomEventing.Benchmark", "IntercomEventing.Benchmark\IntercomEventing.Benchmark.csproj", "{65977E01-3A41-4E20-82E3-0D59889892A4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Src", "Src", "{840B7492-05C0-4164-83D6-4991F1F18A44}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{0B8E5EBA-AA11-414A-A51B-757A537FB441}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{7C94C8D6-D96A-4D63-A65D-BEFFD8A1EC79}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+		.github\workflows\publish.yml = .github\workflows\publish.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +34,10 @@ Global
 		{65977E01-3A41-4E20-82E3-0D59889892A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65977E01-3A41-4E20-82E3-0D59889892A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65977E01-3A41-4E20-82E3-0D59889892A4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A0C9C38B-B4B1-4F9F-B15C-E03182835594} = {840B7492-05C0-4164-83D6-4991F1F18A44}
+		{65977E01-3A41-4E20-82E3-0D59889892A4} = {0B8E5EBA-AA11-414A-A51B-757A537FB441}
+		{B1CF90AA-200C-4037-9D18-75FEF871DBF9} = {0B8E5EBA-AA11-414A-A51B-757A537FB441}
 	EndGlobalSection
 EndGlobal

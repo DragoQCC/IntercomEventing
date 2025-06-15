@@ -11,12 +11,13 @@
         <PackageProjectUrl>https://github.com/DragoQCC/IntercomEventing</PackageProjectUrl>
         <RepositoryUrl>https://github.com/DragoQCC/IntercomEventing</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
+        <Version>1.0.1</Version>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="HelpfulTypesAndExtensions" Version="1.7.0" />
+      <PackageReference Include="HelpfulTypesAndExtensions" Version="1.8.1" />
       <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.2" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.6" />
     </ItemGroup>
 
     <ItemGroup>

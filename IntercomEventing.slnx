@@ -1,0 +1,10 @@
+﻿<Solution>
+  <Folder Name="/Src/">
+    <Project Path="IntercomEventing.External\IntercomEventing.External.csproj" Type="Classic C#" />
+    <Project Path="IntercomEventing\IntercomEventing.csproj" Type="Classic C#" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="IntercomEventing.Benchmark\IntercomEventing.Benchmark.csproj" Type="Classic C#" />
+    <Project Path="IntercomEventing.Tests\IntercomEventing.Tests\IntercomEventing.Tests.csproj" Type="Classic C#" />
+  </Folder>
+</Solution>
