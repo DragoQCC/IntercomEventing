@@ -6,7 +6,7 @@ public class UserCreation_EventProducer
     public UserThresholdReachedEvent UserThresholdReachedEvent { get; init; } = new();
     
 
-    public async Task CreateUserAsync(User user) => UserCreatedEvent.NotifyUserCreated(user);
+    public async Task CreateUserAsync(User user) => await UserCreatedEvent.NotifyUserCreated(user);
 
     public async Task NotifyUserThresholdReachedAsync(User user) => await UserThresholdReachedEvent.RaiseEvent(new UserThresholdReachedEventCall(user));
 }

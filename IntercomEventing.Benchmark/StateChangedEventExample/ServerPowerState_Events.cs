@@ -37,7 +37,7 @@ public record ServerPowerChangedEvent() : StateChangeEvent<ServerPowerChangedEve
     }
 
     /// <inheritdoc />
-    override protected StateChangeEventCall<ServerPowerChangedEvent, ServerPower> CreateEventCall() => new ServerPowerChangedEventCall(_server);
+    override protected StateChangeEventCall<ServerPowerChangedEvent, ServerPower> CreateEventCall(params object[]? args) => new ServerPowerChangedEventCall(_server);
 }
 
 public record ServerPowerChangedEventCall(Server Server) : StateChangeEventCall<ServerPowerChangedEvent, ServerPower>;

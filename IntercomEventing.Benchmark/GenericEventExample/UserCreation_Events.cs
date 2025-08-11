@@ -4,17 +4,23 @@ namespace IntercomEventing.Benchmark.UserCreationExample;
 
 public record UserCreatedEvent : GenericEvent<UserCreatedEvent>
 {
-    private User _user;
     
-    public void NotifyUserCreated(User user)
+    public async Task NotifyUserCreated(User user)
     {
-        _user = user;
-        UserCreatedEventCall eventCall = CreateEventCall();
-        RaiseEvent(eventCall);
+        UserCreatedEventCall eventCall = CreateEventCall(user);
+        await RaiseEvent(eventCall);
     }
-    
+
     /// <inheritdoc />
-    override protected UserCreatedEventCall CreateEventCall() => new(_user);
+    override protected UserCreatedEventCall CreateEventCall(params object[]? args)
+    {
+        if (args?[0] is not User user)
+        {
+            throw new ArgumentException($"Args[0] is not type {typeof(User)}");
+        }
+        UserCreatedEventCall eventCall = new(user);
+        return eventCall;
+    }
 }
 
 public record UserCreatedEventCall(User User) : EventCall<UserCreatedEvent>;
@@ -23,17 +29,26 @@ public record UserCreatedEventCall(User User) : EventCall<UserCreatedEvent>;
 
 public record UserThresholdReachedEvent : GenericEvent<UserThresholdReachedEvent>
 {
-    private User _user;
     
     public void NotifyUserThresholdReached(User user)
     {
-        _user = user;
-        UserThresholdReachedEventCall eventCall = CreateEventCall();
+        UserThresholdReachedEventCall eventCall = CreateEventCall(user);
         RaiseEvent(eventCall);
     }
 
     /// <inheritdoc />
-    override protected UserThresholdReachedEventCall CreateEventCall() => new(_user);
+    override protected UserThresholdReachedEventCall CreateEventCall(params object[]? args)
+    {
+        if (args?[0] is User user)
+        {
+            UserThresholdReachedEventCall eventCall = new(user);
+            return eventCall;
+        }
+        else
+        {
+            throw new ArgumentException($"Args[0] is not type {typeof(User)}");
+        }
+    }
 }
 
 public record UserThresholdReachedEventCall(User User) : EventCall<UserThresholdReachedEvent>;

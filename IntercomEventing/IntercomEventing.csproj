@@ -11,7 +11,7 @@
         <PackageProjectUrl>https://github.com/DragoQCC/IntercomEventing</PackageProjectUrl>
         <RepositoryUrl>https://github.com/DragoQCC/IntercomEventing</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <Version>1.0.1</Version>
+        <Version>1.1.0</Version>
     </PropertyGroup>
 
     <ItemGroup>

@@ -36,8 +36,33 @@ An example event that is raised when a user is created
 ```csharp
 public record UserCreatedEvent : GenericEvent<UserCreatedEvent>
 {
-    private User _user;
+   
+    public void NotifyUserCreated(User user)
+    {
+        UserCreatedEventCall eventCall = CreateEventCall(user);
+        RaiseEvent(eventCall);
+    }
     
+    /// <inheritdoc />
+    override protected UserCreatedEventCall CreateEventCall(params object[]? args)
+    {
+        if (args?[0] is not User user)
+        {
+            throw new ArgumentException($"Args[0] is not type {typeof(User)}");
+        }
+        UserCreatedEventCall eventCall = new(user);
+        return eventCall;
+    }
+}
+
+public record UserCreatedEventCall(User User) : EventCall<UserCreatedEvent>;
+```
+
+1. (Version B) An alternative means of passing arguments to the event call is to use private fields inside the event class vs passing arguments into the array.
+```csharp
+public record UserCreatedEvent : GenericEvent<UserCreatedEvent>
+{
+    private User _user;
     public void NotifyUserCreated(User user)
     {
         _user = user;
@@ -46,11 +71,12 @@ public record UserCreatedEvent : GenericEvent<UserCreatedEvent>
     }
     
     /// <inheritdoc />
-    override protected UserCreatedEventCall CreateEventCall() => new(_user);
+    override protected UserCreatedEventCall CreateEventCall(params object[]? args) => new(_user);
 }
 
 public record UserCreatedEventCall(User User) : EventCall<UserCreatedEvent>;
 ```
+
 
 2. Define the event producer
 

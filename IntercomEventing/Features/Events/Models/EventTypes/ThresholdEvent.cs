@@ -49,8 +49,8 @@ public abstract record ThresholdEvent<TEvent, TValue> : GenericEvent<TEvent>
         }
     }
 
-    
-    override abstract protected ThresholdEventCall<TEvent, TValue> CreateEventCall();
+    ///<inheritdoc/>
+    override abstract protected ThresholdEventCall<TEvent, TValue> CreateEventCall(params object[]? args);
 }
 
 /// <summary>

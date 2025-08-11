@@ -6,7 +6,7 @@ namespace IntercomEventing.Tests;
 public record MockTimedEvent() : TimedEvent<MockTimedEvent>(TimeSpan.FromSeconds(2))
 {
     /// <inheritdoc />
-    override protected TimedEventCall<MockTimedEvent> CreateEventCall() => new MockTimedEventCall();
+    override protected TimedEventCall<MockTimedEvent> CreateEventCall(params object[]? args) => new MockTimedEventCall();
 }
 
 public record MockTimedEventCall(int BestNumber = 42) : TimedEventCall<MockTimedEvent>;

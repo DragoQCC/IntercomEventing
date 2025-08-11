@@ -62,7 +62,8 @@ public abstract record DebounceEvent<TEvent> : GenericEvent<TEvent>
         }
     }
 
-    override abstract protected DebounceEventCall<TEvent> CreateEventCall();
+    ///<inheritdoc/>
+    override abstract protected DebounceEventCall<TEvent> CreateEventCall(params object[]? args);
 
     public override async ValueTask DisposeAsync()
     {

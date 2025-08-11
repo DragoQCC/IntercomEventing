@@ -33,12 +33,12 @@ class Program
         
         
         //BenchmarkRunner.Run<EventBenchmarks>();
-        await CreateAndRunEvents();
+        //await CreateAndRunEvents();
         await CreateUserCreatedEvent();
-        await CreateTimedEventForUserLogonSession();
-        await CreateServerPowerStateChangedEvent();
-        await CreateDebouncedInputEvent();
-        await HandlerTimeoutExample();
+        //await CreateTimedEventForUserLogonSession();
+        //await CreateServerPowerStateChangedEvent();
+        //await CreateDebouncedInputEvent();
+        //await HandlerTimeoutExample();
         
         await host.WaitForShutdownAsync();
         

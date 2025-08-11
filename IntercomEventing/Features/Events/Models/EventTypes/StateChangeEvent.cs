@@ -43,7 +43,8 @@ public abstract record StateChangeEvent<TEvent, TState> : GenericEvent<TEvent>
         await RaiseEvent(eventCall);
     }
 
-    override abstract protected StateChangeEventCall<TEvent, TState> CreateEventCall();
+    ///<inheritdoc/>
+    override abstract protected StateChangeEventCall<TEvent, TState> CreateEventCall(params object[]? args);
 }
 
 /// <summary>

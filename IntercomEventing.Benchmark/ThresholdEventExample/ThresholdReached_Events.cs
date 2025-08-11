@@ -18,7 +18,7 @@ public record CounterReachedGenericEvent : GenericEvent<CounterReachedGenericEve
     }
     
     /// <inheritdoc />
-    override protected EventCall<CounterReachedGenericEvent> CreateEventCall() => new CounterReachedGenericEventCall(Threshold, CurrentValue);
+    override protected EventCall<CounterReachedGenericEvent> CreateEventCall(params object[]? args) => new CounterReachedGenericEventCall(Threshold, CurrentValue);
 }
 
 public record CounterReachedGenericEventCall(int Threshold, int CurrentValue) : EventCall<CounterReachedGenericEvent>;
@@ -26,7 +26,7 @@ public record CounterReachedGenericEventCall(int Threshold, int CurrentValue) : 
 
 public record CounterThresholdReachedEvent() : ThresholdEvent<CounterThresholdReachedEvent, int>(1)
 {
-    protected override ThresholdEventCall<CounterThresholdReachedEvent, int> CreateEventCall() => new CounterThresholdReachedEventCall();
+    protected override ThresholdEventCall<CounterThresholdReachedEvent, int> CreateEventCall(params object[]? args) => new CounterThresholdReachedEventCall();
 }
 
 public record CounterThresholdReachedEventCall : ThresholdEventCall<CounterThresholdReachedEvent,int>;

@@ -16,7 +16,7 @@ public record LogonSessionTimerEvent() : TimedEvent<LogonSessionTimerEvent>(Time
         base.Start();
     }
     
-    protected override TimedEventCall<LogonSessionTimerEvent> CreateEventCall() => new LogonSessionTimerEventCall(_user);
+    protected override TimedEventCall<LogonSessionTimerEvent> CreateEventCall(params object[]? args) => new LogonSessionTimerEventCall(_user);
 }
 
 public record LogonSessionTimerEventCall(User User) : TimedEventCall<LogonSessionTimerEvent>;

@@ -85,8 +85,13 @@ public abstract record GenericEvent<TEvent> : IAsyncDisposable where TEvent : Ge
         await subscription.DisposeAsync();
     }
 
+    /// <summary>
+    /// Used to populate the event call with its required arguments.
+    /// </summary>
+    /// <param name="args">An optional array of arguments for the event call</param>
+    /// <returns></returns>
     [UsedImplicitly]
-    abstract protected EventCall<TEvent> CreateEventCall();
+    abstract protected EventCall<TEvent> CreateEventCall(params object[]? args);
     
     /// <summary>
     /// Fires the event by invoking all subscribed event handlers

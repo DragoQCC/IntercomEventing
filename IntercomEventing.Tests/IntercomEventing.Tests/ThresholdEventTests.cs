@@ -5,7 +5,7 @@ namespace IntercomEventing.Tests;
 public record MockThresholdEvent(int Threshold) : ThresholdEvent<MockThresholdEvent, int>(Threshold)
 {
     /// <inheritdoc />
-    override protected MockThresholdEventCall CreateEventCall() => new();
+    override protected MockThresholdEventCall CreateEventCall(params object[]? args) => new();
 }
 
 public record MockThresholdEventCall : ThresholdEventCall<MockThresholdEvent, int>;

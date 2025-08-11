@@ -24,7 +24,8 @@ public abstract record TimedEvent<TEvent> : GenericEvent<TEvent> where TEvent : 
         _autoReset = autoReset;
     }
 
-    override abstract protected TimedEventCall<TEvent> CreateEventCall();
+    ///<inheritdoc/>
+    override abstract protected TimedEventCall<TEvent> CreateEventCall(params object[]? args);
     
     /// <summary>
     /// Starts the event to be raised at the specified interval <br/>
