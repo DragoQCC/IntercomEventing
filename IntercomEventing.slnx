@@ -4,6 +4,7 @@
     <File Path=".github\workflows\publish.yml" />
   </Folder>
   <Folder Name="/Src/">
+    <Project Path="IntercomEventing.Blazor\IntercomEventing.Blazor.csproj" Type="Classic C#" />
     <Project Path="IntercomEventing\IntercomEventing.csproj" Type="Classic C#" />
   </Folder>
   <Folder Name="/Tests/">
