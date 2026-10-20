@@ -495,7 +495,7 @@ An `EventHandlerFailure` contains the `Exception`, the `Stage` it happened in, t
 Each event can be configured with `EventingOptions` passed to its constructor. Events created without their own options use `EventingOptions.Default`, which can be set with `AddIntercomEventing` (see [Dependency Injection](#dependency-injection)).
 1. **DispatchMode**: Controls whether the event handlers of one raise are executed in parallel or sequentially. The default value is `DispatchMode.Parallel`.
 2. **MaxConcurrentHandlers**: The maximum number of event handlers of one raise that can be executed at the same time in parallel mode. The default value is 100.
-3. **StartNextEventHandlerAfter**: How long to wait for an event handler before starting the next one. The default value is 1 second. The current event handler will continue to run in the background, and `null` waits for every handler.
+3. **StartNextEventHandlerAfter**: How long to wait for an event handler before starting the next one. The default value is 1 second. The current event handler will continue to run in the background, and `null` (or `Timeout.InfiniteTimeSpan`) waits for every handler. Other negative values become zero and values over 49 days become 49 days.
 4. **AllowMultipleSubscribers**: If true, then more than one subscriber can subscribe to the event, otherwise a second subscription throws. The default value is true.
 5. **DefaultExceptionHandler**: Receives the exceptions that no subscription handles itself.
 6. **TimeProvider**: The clock used for timestamps, handler timeouts, timers and debounce intervals. It can be replaced with a fake clock in tests.

@@ -5,28 +5,37 @@ using Microsoft.Extensions.Time.Testing;
 namespace IntercomEventing.Tests.Core;
 
 /// <summary>
-/// <see cref="EventingOptions"/>: documented defaults, validation when the options are built, and how events read
-/// <see cref="EventingOptions.Default"/>.
+/// <see cref="EventingOptions"/>: documented defaults, validation and clamping when the options are built, and how events
+/// read <see cref="EventingOptions.Default"/>.
 /// </summary>
 public class EventingOptionsTests
 {
     //the dispatcher waits StartNextEventHandlerAfter plus this documented grace before moving a handler to the background
     private static readonly TimeSpan DocumentedTimeoutGrace = TimeSpan.FromMilliseconds(50);
+    //longer StartNextEventHandlerAfter values are clamped to this, which the dispatcher's delay can still schedule
+    private static readonly TimeSpan DocumentedLongestHandlerTimeout = TimeSpan.FromDays(49);
 
-    public static IEnumerable<TimeSpan> OutOfRangeHandlerTimeouts()
+    public static IEnumerable<TimeSpan> HandlerTimeoutsLongerThan49Days()
     {
         //A5: TimeSpan.MaxValue overflowed and 60 days threw ArgumentOutOfRangeException at raise time in 1.2.0
         yield return TimeSpan.MaxValue;
         yield return TimeSpan.FromDays(60);
-        yield return TimeSpan.FromDays(49) + TimeSpan.FromTicks(1);
+        yield return DocumentedLongestHandlerTimeout + TimeSpan.FromTicks(1);
+    }
+
+    public static IEnumerable<TimeSpan> NegativeHandlerTimeouts()
+    {
+        //Timeout.InfiniteTimeSpan (-1 ms) is the one negative value with a meaning of its own: it waits for every handler
         yield return TimeSpan.FromMilliseconds(-2);
+        yield return TimeSpan.FromTicks(-1);
+        yield return TimeSpan.MinValue;
     }
 
     public static IEnumerable<TimeSpan> AcceptedHandlerTimeouts()
     {
         yield return TimeSpan.Zero;
         yield return TimeSpan.FromMilliseconds(1);
-        yield return TimeSpan.FromDays(49);
+        yield return DocumentedLongestHandlerTimeout;
     }
 
     [Test]
@@ -56,14 +65,22 @@ public class EventingOptionsTests
     }
 
     [Test]
-    [MethodDataSource(nameof(OutOfRangeHandlerTimeouts))]
-    public async Task StartNextEventHandlerAfter_OutsideZeroTo49Days_IsRejectedWhenTheOptionsAreBuilt(TimeSpan timeout)
+    [MethodDataSource(nameof(HandlerTimeoutsLongerThan49Days))]
+    public async Task StartNextEventHandlerAfter_LongerThan49Days_IsClampedTo49Days(TimeSpan timeout)
     {
-        //A5: validated at construction, so an invalid timeout can no longer fail a raise
-        var thrown = await Assert.That(() => new EventingOptions { StartNextEventHandlerAfter = timeout })
-            .Throws<ArgumentOutOfRangeException>();
+        //A5: clamped when the options are built, so an out-of-range timeout can no longer fail a raise
+        var options = new EventingOptions { StartNextEventHandlerAfter = timeout };
 
-        await Assert.That(thrown!.ParamName).IsEqualTo(nameof(EventingOptions.StartNextEventHandlerAfter));
+        await Assert.That(options.StartNextEventHandlerAfter).IsEqualTo(DocumentedLongestHandlerTimeout);
+    }
+
+    [Test]
+    [MethodDataSource(nameof(NegativeHandlerTimeouts))]
+    public async Task StartNextEventHandlerAfter_Negative_IsClampedToZero(TimeSpan timeout)
+    {
+        var options = new EventingOptions { StartNextEventHandlerAfter = timeout };
+
+        await Assert.That(options.StartNextEventHandlerAfter).IsEqualTo(TimeSpan.Zero);
     }
 
     [Test]

@@ -35,7 +35,8 @@ public enum DispatchMode
 /// after events exist still applies to them.</para>
 /// <para>Options passed to an event replace the defaults wholesale. To change one setting, derive from the default:
 /// <c>EventingOptions.Default with { DispatchMode = DispatchMode.Sequential }</c>.</para>
-/// <para>Every value is validated when the options are built, so invalid settings fail at construction rather than at a raise.</para>
+/// <para>Every value is checked when the options are built, never at a raise: an out-of-range
+/// <see cref="StartNextEventHandlerAfter"/> is clamped, and other invalid settings throw.</para>
 /// </remarks>
 /// <example>
 /// <code>
@@ -121,6 +122,9 @@ public sealed record EventingOptions
     /// moved to the background.</para>
     /// <para>The timeout bounds only the asynchronous part of a handler: synchronous work before its first <c>await</c> runs on
     /// the thread that starts the handler and is not interrupted.</para>
+    /// <para>Values outside the supported range are clamped, not rejected: a negative value other than
+    /// <see cref="Timeout.InfiniteTimeSpan"/> becomes <see cref="TimeSpan.Zero"/>, and a value longer than 49 days becomes
+    /// 49 days, just under the longest delay a <see cref="System.TimeProvider"/> timer accepts.</para>
     /// </remarks>
     public TimeSpan? StartNextEventHandlerAfter
     {
@@ -135,7 +139,8 @@ public sealed record EventingOptions
                 return;
             }
             var timeout = value.GetValueOrDefault();
-            field = timeout < TimeSpan.Zero ? TimeSpan.FromSeconds(1) : timeout > LongestHandlerTimeout ? LongestHandlerTimeout : timeout;
+            //clamped rather than rejected: negative becomes zero, anything past what the dispatcher can schedule becomes the longest it can
+            field = timeout < TimeSpan.Zero ? TimeSpan.Zero : timeout > LongestHandlerTimeout ? LongestHandlerTimeout : timeout;
         }
     } = TimeSpan.FromSeconds(1);
 
