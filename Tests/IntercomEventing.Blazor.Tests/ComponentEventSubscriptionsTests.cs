@@ -679,15 +679,20 @@ public class ComponentEventSubscriptionsTests
         var eventFailures = new EventFailureRecorder();
         var source = new IntercomEvent<int>(eventFailures.EventOptions);
         var ownExceptionHandlerRuns = 0;
+        //a gate rather than Task.Yield: a yielded handler can finish on the thread pool before the helper checks whether it
+        //is still running, which skips the render at its first await on a busy machine
+        var handlerRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Func<EventCall<int>, Task> timeOutLikeHttpClient = async call =>
         {
-            await Task.Yield();
+            await handlerRelease.Task;
             throw new TaskCanceledException("simulated HttpClient timeout");
         };
         events.Subscribe(source, timeOutLikeHttpClient);
         events.Subscribe(source, timeOutLikeHttpClient, onException: (exception, call) => ownExceptionHandlerRuns++);
 
-        await source.RaiseAsync(1);
+        var raise = source.RaiseAsync(1);
+        handlerRelease.SetResult();
+        await raise;
 
         await Assert.That(component.DispatchedExceptions.Count).IsEqualTo(0);
         await Assert.That(ownExceptionHandlerRuns).IsEqualTo(0);
