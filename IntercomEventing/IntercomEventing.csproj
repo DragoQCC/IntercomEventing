@@ -1,27 +1,56 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <LangVersion>latestmajor</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <TargetFramework>net11.0</TargetFramework>
         <Title>Intercom Eventing</Title>
-        <Authors>Jon Owens</Authors>
-        <Description>A .NET eventing framework to replace and extend native .NET events.</Description>
-        <PackageProjectUrl>https://github.com/DragoQCC/IntercomEventing</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/DragoQCC/IntercomEventing</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-        <Version>1.2.0</Version>
-        <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+        <Description>A .NET eventing library that replaces and extends native .NET events: typed per-raise event calls with metadata, async handlers with timeouts and exception routing, threshold, state change, timed and debounce events, and a source generator for native event members.</Description>
+        <PackageTags>events;eventing;async;debounce;source-generator</PackageTags>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="HelpfulTypesAndExtensions" Version="2.0.0" />
-      <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+        <!-- Usable from Blazor WebAssembly: the library must not block threads or depend on server-only frameworks. -->
+        <SupportedPlatform Include="browser" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Shared\Models\" />
+        <None Include="..\README.md" Pack="true" PackagePath="\" Visible="false" />
     </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="IntercomEventing.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+          Builds the source generator first so it can be packed below. It is not a compile reference, never becomes a
+          package dependency, and is not applied to this project's own compilation.
+        -->
+        <ProjectReference Include="..\IntercomEventing.Generators\IntercomEventing.Generators.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <!--
+          Consumers of the IntercomEventing package get the [IntercomEvent] source generator. NuGet adds
+          analyzers/dotnet/cs assemblies to C# compilations as analyzers, not as references.
+        -->
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddIntercomEventingGeneratorToPackage</TargetsForTfmSpecificContentInPackage>
+    </PropertyGroup>
+
+    <Target Name="AddIntercomEventingGeneratorToPackage">
+        <!-- Inner-build properties are removed so the netstandard2.0 generator project is not evaluated as net11.0. -->
+        <MSBuild Projects="..\IntercomEventing.Generators\IntercomEventing.Generators.csproj"
+                 Targets="GetTargetPath"
+                 RemoveProperties="TargetFramework;RuntimeIdentifier;SelfContained">
+            <Output TaskParameter="TargetOutputs" ItemName="_IntercomEventingGeneratorAssembly" />
+        </MSBuild>
+
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="@(_IntercomEventingGeneratorAssembly)" PackagePath="analyzers/dotnet/cs" />
+        </ItemGroup>
+    </Target>
 
 </Project>

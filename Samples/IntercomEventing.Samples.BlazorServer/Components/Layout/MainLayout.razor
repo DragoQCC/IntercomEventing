@@ -1,0 +1,26 @@
+@inherits LayoutComponentBase
+
+<header class="top-bar">
+    <a class="brand" href="">IntercomEventing samples</a>
+    <nav>
+        <NavLink href="" Match="NavLinkMatch.All">Home</NavLink>
+        <NavLink href="rack">Server rack</NavLink>
+        <NavLink href="search">Search</NavLink>
+        <NavLink href="chat">Chat</NavLink>
+        <NavLink href="telemetry">Telemetry</NavLink>
+    </nav>
+    @if (RendererInfo.IsInteractive)
+    {
+        <span class="visitor">This tab is <strong>@Visitor.Name</strong></span>
+    }
+</header>
+
+<main>
+    @Body
+</main>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

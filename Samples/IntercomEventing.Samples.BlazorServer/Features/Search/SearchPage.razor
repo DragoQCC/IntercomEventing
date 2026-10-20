@@ -1,0 +1,47 @@
+@page "/search"
+@inherits IntercomComponentBase
+
+<PageTitle>Search</PageTitle>
+
+<h1>Search</h1>
+<p class="muted">
+    Every keystroke triggers a <code>DebounceEvent</code>; it raises once you pause typing, so the search runs once per pause
+    instead of once per key. Press Enter to raise immediately with <code>FlushAsync</code>. The service is scoped, so this tab
+    has its own event.
+</p>
+
+<div class="two-columns">
+    <div class="card">
+        <input type="text" placeholder="Try monitor, audio or server" @oninput="OnInput" @onkeydown="OnKeyDownAsync" />
+        @if (IsSearching)
+        {
+            <p class="muted">Searching…</p>
+        }
+        else if (LastSearchText is null)
+        {
+            <p class="muted">Start typing to search.</p>
+        }
+        else
+        {
+            <p class="muted">@Results.Count result(s) for "@LastSearchText"</p>
+            <ul>
+                @foreach (var product in Results)
+                {
+                    <li>@product.Name <span class="muted">(@product.Category)</span></li>
+                }
+            </ul>
+        }
+    </div>
+
+    <div class="card">
+        <h2>Debounce statistics</h2>
+        <p>Keystrokes: <strong>@Search.KeystrokeCount</strong></p>
+        <p>Searches run: <strong>@SearchesRun</strong></p>
+        <ul class="event-log">
+            @foreach (var line in SearchLog)
+            {
+                <li>@line</li>
+            }
+        </ul>
+    </div>
+</div>

@@ -1,19 +1,16 @@
-name: Publish Package
+name: Build, Test and Publish
 
 on:
   push:
     branches:
-      - master
+      - main
+  pull_request:
 
 jobs:
-  build-and-publish:
+  build-test-publish:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./IntercomEventing
     permissions:
-      contents: read  # Optional, defaults to read
-      packages: write  # Grants write permission to packages
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,19 +18,40 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'  # Specify your .NET SDK version
+          # Installs the SDK version pinned in the repository's global.json
+          global-json-file: global.json
 
-      - name: Restore dependencies
-        run: dotnet restore
+      - name: Restore
+        run: dotnet restore IntercomEventing.slnx
 
-      - name: Build the project
-        run: dotnet build --configuration Release --no-restore
+      - name: Build
+        run: dotnet build IntercomEventing.slnx --configuration Release --no-restore
 
-      - name: Pack the project
-        run: dotnet pack --configuration Release --no-build -o ./packages
+      # Test projects run on Microsoft.Testing.Platform (global.json "test" section)
+      - name: Test
+        run: dotnet test --solution IntercomEventing.slnx --configuration Release --no-build
 
-      - name: Publish to Nuget
-        run: dotnet nuget push ./packages/*.nupkg --source "https://api.nuget.org/v3/index.json" --api-key ${{ secrets.NUGET_API_KEY }}
-        shell: bash
+      # The README's snippets come from these self-checking examples; the runner exits with 1 when any check fails.
+      # They use real timers of 50-300 ms with waits of several seconds, so a slow runner delays them rather than failing them
+      - name: Examples
+        run: dotnet run --project IntercomEventing.Benchmark --configuration Release --no-build -- examples
 
-      
+      - name: Pack
+        run: dotnet pack IntercomEventing.slnx --configuration Release --no-build --output ./packages
+
+      - name: List packages
+        run: ls -la ./packages/*.nupkg
+
+      # Builds a project that references only the IntercomEventing.Blazor package from ./packages (its nuget.config maps
+      # IntercomEventing* there): proves the [IntercomEvent] generator flows to Blazor-only consumers and that the packed
+      # members compile for the browser platform. A private package cache keeps an older copy of the same version out
+      - name: Build a consumer of the packed packages
+        run: >-
+          dotnet build Tests/IntercomEventing.PackageConsumer/IntercomEventing.PackageConsumer.csproj --configuration Release
+          -p:RestorePackagesPath="${{ runner.temp }}/package-consumer-cache"
+
+      # Only pushes to master publish. skip-duplicate makes a push that leaves Version unchanged a no-op;
+      # any other push failure fails the job.
+      - name: Publish to NuGet
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: dotnet nuget push "./packages/*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate

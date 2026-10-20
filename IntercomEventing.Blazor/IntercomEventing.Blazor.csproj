@@ -1,18 +1,34 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
+        <TargetFramework>net11.0</TargetFramework>
+        <Title>Intercom Eventing for Blazor</Title>
+        <Description>Blazor integration for IntercomEventing: component-scoped subscriptions that run handlers on the renderer, re-render afterwards and unsubscribe when the component is disposed. Works on Blazor Server and WebAssembly.</Description>
+        <PackageTags>events;eventing;blazor;components</PackageTags>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <RootNamespace>IntercomEventing.Blazor</RootNamespace>
+        <!-- WebAssembly apps trim on publish; this turns on the trim and AOT analyzers so the build proves the library is safe to trim. -->
+        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
-
     <ItemGroup>
-        <SupportedPlatform Include="browser"/>
+        <SupportedPlatform Include="browser" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
+        <None Include="..\README.md" Pack="true" PackagePath="\" Visible="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+          PrivateAssets="none" keeps the IntercomEventing package dependency free of the default exclude="Build,Analyzers",
+          so a project that installs only IntercomEventing.Blazor still gets the [IntercomEvent] source generator.
+        -->
+        <ProjectReference Include="..\IntercomEventing\IntercomEventing.csproj" PrivateAssets="none" />
     </ItemGroup>
 
 </Project>

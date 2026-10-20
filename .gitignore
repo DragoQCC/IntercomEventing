@@ -4,3 +4,13 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 /.idea
+
+# Project memory lives in the separate context repository.
+/.ai
+*.DotSettings.user
+
+# BenchmarkDotNet run output
+BenchmarkDotNet.Artifacts/
+
+# Microsoft.Testing.Platform / TUnit reports, written next to the solution by dotnet test
+TestResults/

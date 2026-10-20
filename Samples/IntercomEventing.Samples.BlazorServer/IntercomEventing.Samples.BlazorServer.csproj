@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <!--
+      Sample Blazor Server app (Interactive Server render mode) that uses IntercomEventing.Blazor. It is part of
+      IntercomEventing.slnx so the solution build keeps it compiling against the current library, and it is never packed.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <!-- The Web SDK makes web apps non-packable and warns when "dotnet pack IntercomEventing.slnx" (CI) reaches one. -->
+        <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+        <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- An app installs the IntercomEventing.Blazor package instead; it brings IntercomEventing and the source generator. -->
+        <ProjectReference Include="..\..\IntercomEventing.Blazor\IntercomEventing.Blazor.csproj" />
+        <!-- The chat room uses [IntercomEvent]; with the package the generator arrives automatically. -->
+        <ProjectReference Include="..\..\IntercomEventing.Generators\IntercomEventing.Generators.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+</Project>

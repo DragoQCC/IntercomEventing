@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- TUnit test projects are Microsoft.Testing.Platform executables (dotnet test or dotnet run). -->
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net11.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="TUnit" />
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+        <!-- Compiles the misuse snippets in Core/MisuseCompileErrorTests.cs against the built IntercomEventing assembly. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\IntercomEventing\IntercomEventing.csproj" />
+    </ItemGroup>
+
+</Project>

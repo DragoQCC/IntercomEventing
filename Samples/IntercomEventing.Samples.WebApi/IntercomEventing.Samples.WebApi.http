@@ -1,0 +1,67 @@
+# Requests for the IntercomEventing Minimal API sample (dotnet run --project Samples/IntercomEventing.Samples.WebApi).
+# Watch the live feed while sending them:  curl -N http://localhost:5281/events/stream
+
+@baseUrl = http://localhost:5281
+
+### Place an order: IntercomEvent<OrderPlaced>. The response waits for the handlers (the confirmation mail takes ~200 ms)
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{ "customerEmail": "ada@example.com", "sku": "MN-27", "quantity": 2 }
+
+### An order whose confirmation fails: the handler's exception is logged by DefaultExceptionHandler, the order still succeeds
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{ "customerEmail": "nobody@example.invalid", "sku": "KB-01", "quantity": 1 }
+
+### List the orders
+GET {{baseUrl}}/orders
+
+### Day's sales against the goal: ThresholdEvent raises DailySalesGoalReached once, on the order that crosses 500
+GET {{baseUrl}}/orders/sales
+
+### Start a new sales day: resets the running total without raising, so the goal can be reached again
+POST {{baseUrl}}/orders/sales/new-day
+
+### Pause the store: StateChangeEvent raises once; sending the same status again returns "changed": false
+PUT {{baseUrl}}/store/status
+Content-Type: application/json
+
+{ "status": "Paused", "reason": "Stock count" }
+
+### Orders are rejected while the store is not open
+POST {{baseUrl}}/orders
+Content-Type: application/json
+
+{ "customerEmail": "ada@example.com", "sku": "MS-02", "quantity": 1 }
+
+### Reopen the store
+PUT {{baseUrl}}/store/status
+Content-Type: application/json
+
+{ "status": "Open", "reason": "Stock count finished" }
+
+### Change a price: visible at once in /products
+PUT {{baseUrl}}/products/KB-01/price
+Content-Type: application/json
+
+{ "price": 79.00 }
+
+### Change another price within 2 seconds: DebounceEvent coalesces both into one price-list publish
+PUT {{baseUrl}}/products/MS-02/price
+Content-Type: application/json
+
+{ "price": 34.00 }
+
+### Current catalog
+GET {{baseUrl}}/products
+
+### Published price list: updates about 2 seconds after the last price change
+GET {{baseUrl}}/products/price-list
+
+### Audit: the custom BatchEvent writes entries in batches of 5, and a TimedEvent flushes a partial batch every 15 seconds
+GET {{baseUrl}}/audit
+
+### Write the waiting audit entries now
+POST {{baseUrl}}/audit/flush

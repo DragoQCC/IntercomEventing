@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <!--
+      A consumer of the packed packages, not part of IntercomEventing.slnx: CI builds it after "dotnet pack" so that it
+      restores IntercomEventing.Blazor from ./packages (see nuget.config next to this file) instead of from project
+      references. The build proves that:
+        - a project that installs only IntercomEventing.Blazor gets IntercomEventing and the [IntercomEvent] generator, which
+          depends on the PrivateAssets="none" ProjectReference in IntercomEventing.Blazor.csproj;
+        - the generated members and the Blazor components compile for the browser platform without warnings.
+      Build it locally after packing to ./packages, with a private package cache so an older copy of the same version is
+      never reused:
+        dotnet build Tests/IntercomEventing.PackageConsumer -p:RestorePackagesPath=<an empty folder>
+    -->
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <!-- The package version is the one this repository packs ($(Version) from Directory.Build.props), which central package management cannot express. -->
+        <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <SupportedPlatform Include="browser" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Only the Blazor package: IntercomEventing and its source generator must arrive through it. -->
+        <PackageReference Include="IntercomEventing.Blazor" Version="$(Version)" />
+    </ItemGroup>
+
+</Project>

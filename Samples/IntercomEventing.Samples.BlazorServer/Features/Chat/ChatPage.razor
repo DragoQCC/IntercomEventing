@@ -1,0 +1,55 @@
+@page "/chat"
+
+<PageTitle>Chat</PageTitle>
+
+<h1>Chat</h1>
+<p class="muted">
+    A singleton chat room whose events come from <code>[IntercomEvent]</code> fields. Open a second tab to chat with yourself,
+    type <code>/help</code> for the bot, or send a message containing <code>!fail</code> to break the statistics panel.
+</p>
+
+@* each listener is subscribed while it is rendered and renders nothing. OnRaised is an EventCallback, so this page
+   re-renders after each call without calling StateHasChanged. Razor cannot infer TCall from a method group, so the first
+   listener names it; the second infers it from the typed lambda parameter *@
+<EventListener TCall="EventCall<ChatMessage>" Event="Room.MessagePostedEvent" OnRaised="OnMessagePosted" />
+<EventListener Event="Room.ClearedEvent" OnRaised="(EventCall<NoPayload> call) => OnCleared(call)" />
+
+<div class="two-columns">
+    <div class="card">
+        <ul class="chat-messages">
+            @foreach (var message in Room.RecentMessages)
+            {
+                <li>
+                    <span class="author">@message.Author</span>@message.Text
+                    <span class="muted">@message.SentAt.ToLocalTime().ToString("HH:mm:ss")</span>
+                </li>
+            }
+        </ul>
+        <form @onsubmit="SendAsync" @onsubmit:preventDefault>
+            <div class="button-row">
+                <input type="text" @bind="Draft" @bind:event="oninput" placeholder="Say something, or type /help" />
+                <button class="primary" type="submit">Send</button>
+                <button type="button" @onclick="ClearAsync">Clear history</button>
+            </div>
+        </form>
+        <p class="muted">@LastActivity</p>
+    </div>
+
+    <ErrorBoundary @ref="_statisticsBoundary">
+        <ChildContent>
+            <ChatStatistics />
+        </ChildContent>
+        <ErrorContent Context="error">
+            <div class="card alert">
+                <h2>Statistics panel failed</h2>
+                <p>Its handler threw: @error.Message</p>
+                <p class="muted">
+                    The subscription sent the exception to the component's <code>DispatchExceptionAsync</code>, so this
+                    <code>ErrorBoundary</code> caught it. The chat keeps working, and so does every other subscriber of the
+                    room; the statistics panel of each open tab handles the same message, so each one fails the same way.
+                </p>
+                <button @onclick="RecoverStatistics">Recover</button>
+            </div>
+        </ErrorContent>
+    </ErrorBoundary>
+</div>

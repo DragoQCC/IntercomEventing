@@ -1,0 +1,33 @@
+@page "/"
+
+<PageTitle>IntercomEventing samples</PageTitle>
+
+<h1>IntercomEventing on Blazor Server</h1>
+
+<p>
+    Each page uses a different event kind. The server rack, chat and telemetry pages use singleton services, so
+    <strong>open this app in two browser tabs</strong>: an event raised in one tab updates the other.
+</p>
+
+<div class="card-grid">
+    <a class="card link-card" href="rack">
+        <h2>Server rack</h2>
+        <p><code>StateChangeEvent&lt;PowerState, PowerChangeRequest&gt;</code> on a singleton, handled by an
+            <code>IntercomComponentBase</code> page in every tab.</p>
+    </a>
+    <a class="card link-card" href="search">
+        <h2>Search</h2>
+        <p><code>DebounceEvent&lt;SearchQuery&gt;</code> on a scoped (per-tab) service: one search per pause in typing,
+            <code>FlushAsync</code> on Enter.</p>
+    </a>
+    <a class="card link-card" href="chat">
+        <h2>Chat</h2>
+        <p><code>[IntercomEvent]</code> generated members, <code>&lt;EventListener&gt;</code> in markup, a hosted bot
+            subscribed with <code>+=</code>, and a failing handler caught by an <code>ErrorBoundary</code>.</p>
+    </a>
+    <a class="card link-card" href="telemetry">
+        <h2>Telemetry</h2>
+        <p>A <code>TimedEvent</code> samples sensors, a custom <code>ThrottleEvent&lt;T&gt;</code> limits UI updates and a
+            <code>ThresholdEvent</code> raises overheating alerts; the selected sensor's event is cascaded.</p>
+    </a>
+</div>

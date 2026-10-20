@@ -1,0 +1,40 @@
+@page "/telemetry"
+@inherits IntercomComponentBase
+
+<PageTitle>Telemetry</PageTitle>
+
+<h1>Telemetry</h1>
+<p class="muted">
+    Each sensor takes a reading every 100 ms from a <code>TimedEvent</code>. The custom <code>ThrottleEvent</code> passes at
+    most one of them to the UI every 500 ms, and a <code>ThresholdEvent</code> raises an alert after ten hot readings in a
+    row. The selected sensor's throttle event is cascaded to the live panel, which moves its subscription when you switch.
+</p>
+
+<div class="button-row">
+    <select @bind="SelectedSensorName">
+        @foreach (var sensor in Hub.Sensors)
+        {
+            <option value="@sensor.Name">@sensor.Name</option>
+        }
+    </select>
+    <button @onclick="ToggleSampling">@(SelectedSensor.IsRunning ? "Stop sampling" : "Start sampling")</button>
+    <button @onclick="ToggleCoolingFailure">@(SelectedSensor.IsCoolingFailed ? "Repair cooling" : "Simulate cooling failure")</button>
+</div>
+
+<div class="two-columns">
+    <CascadingValue Value="SelectedSensor.ReadingSampled">
+        <LiveReadingPanel />
+    </CascadingValue>
+
+    <div class="card">
+        <h2>Overheating alerts</h2>
+        @if (Alerts.Count == 0)
+        {
+            <p class="muted">No alerts. Simulate a cooling failure to raise one.</p>
+        }
+        @foreach (var alert in Alerts)
+        {
+            <div class="alert">@alert</div>
+        }
+    </div>
+</div>

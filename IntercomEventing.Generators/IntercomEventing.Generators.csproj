@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!--
+          A Roslyn compiler plug-in (the [IntercomEvent] source generator). The compiler loads it into its own process, so
+          it targets netstandard2.0 instead of the repository's net11.0 and is never a runtime dependency of an application.
+        -->
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <!-- Shipped inside the IntercomEventing package under analyzers/dotnet/cs, never as a package of its own. -->
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Release tracking: every diagnostic ID must be listed here, or the build fails (RS2008). -->
+        <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+        <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="IntercomEventing.Generators.Tests" />
+    </ItemGroup>
+
+</Project>

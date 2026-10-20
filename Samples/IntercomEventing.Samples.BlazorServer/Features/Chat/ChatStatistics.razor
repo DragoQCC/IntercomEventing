@@ -1,0 +1,15 @@
+@inherits IntercomComponentBase
+
+<div class="card">
+    <h2>Messages per author</h2>
+    @if (MessagesPerAuthor.Count == 0)
+    {
+        <p class="muted">No messages yet.</p>
+    }
+    <ul class="event-log">
+        @foreach (var (author, count) in MessagesPerAuthor.OrderByDescending(pair => pair.Value))
+        {
+            <li><strong>@author</strong>: @count</li>
+        }
+    </ul>
+</div>

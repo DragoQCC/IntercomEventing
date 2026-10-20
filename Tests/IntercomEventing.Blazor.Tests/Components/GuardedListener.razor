@@ -1,0 +1,11 @@
+@* An EventListener whose callback throws, inside an ErrorBoundary. *@
+<ErrorBoundary>
+    <ChildContent>
+        <EventListener TCall="EventCall<string>" Event="Source" OnRaised="ThrowFromCallback" />
+        <p class="content">listening</p>
+    </ChildContent>
+    <ErrorContent Context="error">
+        <p class="boundary">boundary: @error.Message</p>
+        <p class="boundary-type">@error.GetType().Name</p>
+    </ErrorContent>
+</ErrorBoundary>

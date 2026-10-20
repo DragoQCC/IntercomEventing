@@ -1,0 +1,9 @@
+@* Declarative subscriptions. Razor cannot infer TCall from a method group, so the first listener names it; the second
+   infers it from the typed lambda. Both listeners exist only while ShowListeners is true. *@
+@if (ShowListeners)
+{
+    <EventListener TCall="EventCall<OrderPlaced>" Event="OrderEvent" OnRaised="OnOrderPlaced" />
+    <EventListener Event="OrderEvent" OnRaised="(EventCall<OrderPlaced> call) => AddToTotal(call)" />
+}
+<p class="last-order">Last order: @(LastOrderNumber?.ToString() ?? "none")</p>
+<p class="total">Total: @TotalSeen</p>

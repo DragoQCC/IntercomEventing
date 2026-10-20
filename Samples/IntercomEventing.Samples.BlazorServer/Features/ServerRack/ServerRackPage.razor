@@ -1,0 +1,51 @@
+@page "/rack"
+@inherits IntercomComponentBase
+
+<PageTitle>Server rack</PageTitle>
+
+<h1>Server rack</h1>
+<p class="muted">
+    Each server's power state is a <code>StateChangeEvent</code> on a singleton. Switch a server here and watch another tab:
+    its log updates through its own renderer. Choosing the state a server is already in raises nothing.
+</p>
+
+@if (LastResult is not null)
+{
+    <p class="alert">@LastResult</p>
+}
+
+<div class="two-columns">
+    <div class="card-grid">
+        @foreach (var server in Rack.Servers)
+        {
+            var currentState = server.PowerChanged.CurrentState;
+            <div class="card">
+                <h2>@server.Name <span class="status @CssClassFor(currentState)">@currentState</span></h2>
+                <div class="button-row">
+                    @foreach (var state in Enum.GetValues<PowerState>())
+                    {
+                        <button class="@(state == currentState ? "primary" : null)" @onclick="() => SetPowerAsync(server, state)">@state</button>
+                    }
+                </div>
+                <p class="muted">@server.PowerChanged.SubscriberCount subscriber(s): one per open tab on this page</p>
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <h2>Power log</h2>
+        @if (PowerLog.Count == 0)
+        {
+            <p class="muted">No changes since this page opened.</p>
+        }
+        <ul class="event-log">
+            @foreach (var entry in PowerLog)
+            {
+                <li class="@(entry.FromThisTab ? null : "from-other-tab")">
+                    @entry.RaisedAt.ToLocalTime().ToString("HH:mm:ss") <strong>@entry.ServerName</strong>:
+                    @entry.OldState → @entry.NewState (@entry.RequestedBy)
+                </li>
+            }
+        </ul>
+    </div>
+</div>

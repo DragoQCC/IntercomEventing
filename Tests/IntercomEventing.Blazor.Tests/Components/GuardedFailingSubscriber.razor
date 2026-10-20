@@ -1,0 +1,9 @@
+@* FailingSubscriber inside an ErrorBoundary: an unhandled handler exception replaces the content with ErrorContent. *@
+<ErrorBoundary>
+    <ChildContent>
+        <FailingSubscriber Source="Source" HandleInComponent="HandleInComponent" />
+    </ChildContent>
+    <ErrorContent Context="error">
+        <p class="boundary">boundary: @error.Message</p>
+    </ErrorContent>
+</ErrorBoundary>

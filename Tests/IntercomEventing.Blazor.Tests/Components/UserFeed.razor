@@ -1,0 +1,8 @@
+@inherits IntercomComponentBase
+@* Inherits IntercomComponentBase and gets its event from an injected service; the handler is synchronous. *@
+<ul>
+    @foreach (var name in RecentNames)
+    {
+        <li>@name</li>
+    }
+</ul>

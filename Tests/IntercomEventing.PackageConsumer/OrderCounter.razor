@@ -1,0 +1,6 @@
+@inherits IntercomComponentBase
+
+<p>Orders: @OrderCount, last total: @LastTotal</p>
+
+@* the generated view property, with TCall named because OnRaised is a method group *@
+<EventListener TCall="EventCall<OrderPlaced>" Event="Orders.OrderPlacedEvent" OnRaised="RecordTotal" />
